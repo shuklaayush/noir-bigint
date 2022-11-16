@@ -1,5 +1,6 @@
 use dep::std;
 mod u32_utils;
+mod arithmetic;
 
 global NUM_LIMBS : Field = 8;
 global LIMB_BITS : Field = 32;
@@ -73,10 +74,9 @@ impl BigInt {
         // constrain limbs[0] == 1;
         BigInt::new(limbs)
     }
+    
+    // Arithmetic
 
-    // fn from_bytes_le(bytes : [u8]) -> Self {
-
-    // }
     
 
 }
@@ -84,6 +84,7 @@ impl BigInt {
 fn main(x : Field, y : pub Field) {
     constrain x != y;
     run_tests();
+    arithmetic::run_tests();
 }
 
 // Tests
