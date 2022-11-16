@@ -34,6 +34,7 @@ fn mul_limbs_with_carry(a: u32, b: u32, carry: u32) -> (u32, u32) {
 fn run_tests() {
     test_add_limbs();
     test_sub_limbs();
+    test_mul_limbs();
 }
 
 // add_limbs_with_carry
@@ -140,11 +141,50 @@ fn test_sub_limbs_with_borrow_case5() {
     constrain new_borrow == expected_new_borrow;
 }
 
-
 fn test_sub_limbs() {
     test_sub_limbs_with_borrow_case1();
     test_sub_limbs_with_borrow_case2();
     test_sub_limbs_with_borrow_case3();
     test_sub_limbs_with_borrow_case4();
     test_sub_limbs_with_borrow_case5();
+}
+
+// mul_limbs_with_carry
+fn test_mul_limbs_with_carry_case1() {
+    let a = 9;
+    let b = 11;
+    let carry = 7;
+    let expected_product = 106;
+    let expected_new_carry = 0;
+    let (product, new_carry) = mul_limbs_with_carry(a, b, carry);
+    constrain product == expected_product;
+    constrain new_carry == expected_new_carry;
+}
+
+fn test_mul_limbs_with_carry_case2() {
+    let a = 4294967295; // 2^32 - 1
+    let b = 4294967295; // 2^32 - 1
+    let carry = 0;
+    let expected_product = 1;
+    let expected_new_carry = 4294967294; // 2^32 - 2
+    let (product, new_carry) = mul_limbs_with_carry(a, b, carry);
+    constrain product == expected_product;
+    constrain new_carry == expected_new_carry;
+}
+
+fn test_mul_limbs_with_carry_case3() {
+    let a = 4294967295; // 2^32 - 1
+    let b = 4294967295; // 2^32 - 1
+    let carry = 4294967295; // 2^32 - 1
+    let expected_product = 0;
+    let expected_new_carry = 4294967295; // 2^32 - 1
+    let (product, new_carry) = mul_limbs_with_carry(a, b, carry);
+    constrain product == expected_product;
+    constrain new_carry == expected_new_carry;
+}
+
+fn test_mul_limbs() {
+    test_mul_limbs_with_carry_case1();
+    test_mul_limbs_with_carry_case2();
+    test_mul_limbs_with_carry_case3();
 }
