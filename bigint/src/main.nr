@@ -14,28 +14,25 @@ struct BigInt {
 }
 
 impl BigInt {
+    /// Creation
+
+    // Creates and initializes a BigInt.
     fn new(limbs : [u32; NUM_LIMBS]) -> Self {
         Self {
             limbs: limbs
         }
     }
 
+    // Returns the additive identity element
     fn zero() -> Self {
         BigInt::new([0 as u32; NUM_LIMBS])
     }
 
+    // Returns the multiplicative identity element
     fn one() -> Self {
         let mut one = [0 as u32; NUM_LIMBS];
         one[0] = 1;
         BigInt::new(one)
-    }
-    
-    fn is_even(self : Self) -> bool {
-        self.limbs[0] % 2 == 0
-    }
-
-    fn is_odd(self : Self) -> bool {
-        self.limbs[0] % 2 == 1
     }
     
     // Returns the big integer representation of a given little endian byte array
@@ -75,10 +72,41 @@ impl BigInt {
         BigInt::new(limbs)
     }
     
-    // Arithmetic
+    /// Math
 
+    // Returns self % modulus.
+    // fn pow(self : Self, modulus : Self)
+
+    // Returns self ^ exponent.
+    // fn pow(self : Self, exponent : u32)
     
+    // Returns (self ^ exponent) % modulus.
+    // fn pow_mod(self : Self, exponent : u32, modulus : Self)
+    
+    // Returns self + other
+    // fn add(self : Self, other : Self)
 
+    // Returns self + other % modulus.
+    // fn add_mod(self : Self, other : Self, modulus : Self)
+    
+    // Returns self * other.
+    // fn mul(self : Self, other : Self)
+
+    // Returns self * other % modulus.
+    // fn mul_mod(self : Self, other : Self, modulus : Self)
+    
+    // Returns self - other.
+    // fn sub(self : Self, other : Self)
+
+    // Returns true iff this number is even.
+    fn is_even(self : Self) -> bool {
+        self.limbs[0] % 2 == 0
+    }
+
+    // Returns true iff this number is odd.
+    fn is_odd(self : Self) -> bool {
+        self.limbs[0] % 2 == 1
+    }
 }
 
 fn main(x : Field, y : pub Field) {
