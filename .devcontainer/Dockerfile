@@ -32,7 +32,7 @@ RUN git clone https://github.com/noir-lang/noir.git ~/noir
 
 
 WORKDIR /home/vscode/noir/crates/nargo
-RUN git checkout gd/short_circuit
+# RUN git checkout gd/short_circuit
 RUN cargo fetch --locked
 
 WORKDIR /usr/local/cargo/git/checkouts/barretenberg-6ce83dfea69613eb/804c7dc/barretenberg_wrapper
