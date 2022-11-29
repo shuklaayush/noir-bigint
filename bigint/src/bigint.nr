@@ -14,6 +14,7 @@ struct BigInt {
     limbs : [u32; NUM_LIMBS],
 }
 
+// TODO: impl
 struct BigInt2 {
     limbs : [u32; DOUBLE_LIMBS],
 }
@@ -124,37 +125,23 @@ impl BigInt {
         (msl_index, msl_minus_two, msl_minus_one, msl)
     }
     
-    // Returns self % modulus.
-    // fn mod(self : Self, modulus : Self) -> Self {
-    //     let diff_result = modulus.sub(self);
-    //     // if there's no overflow then modulus > self, so self % modulus = self
-    //     if diff_result.overflow == false {
-    //         self
-    //     } else {
-
-    //     }
-    // }
-
-    // // Returns self ^ exponent.
+    // Returns self ^ exponent.
     // fn pow(self : Self, exponent : u32) -> Self {
+    //     if self.is_one() | exponent == 0 {
+    //         BigInt::one();
+    //     } else {
+    //         if self.is_zero() {
+    //             BigInt::zero();
+    //         } else {
+    //             
+    //         }
+    //     }
     //     
     // }
     
     // Returns (self ^ exponent) % modulus.
     // fn pow_mod(self : Self, exponent : u32, modulus : Self)
     
-    // Returns self + other
-    // fn add(self : Self, other : BigInt) -> (BigInt, bool) {
-    //     let mut limbs : [u32; NUM_LIMBS] = [0 as u32; NUM_LIMBS];
-    //     let mut carry : u32 = 0;
-    //     for i in 0..NUM_LIMBS {
-    //         let (limb_sum, new_carry) = arithmetic::add_limbs_with_carry(self.limbs[i], other.limbs[i], carry);
-    //         limbs[i] = limb_sum;
-    //         carry = new_carry;
-    //     };
-    //     let overflow : bool = carry != 0;
-    //     (BigInt::new(limbs), overflow)
-    // }
     fn add(self : Self, other : BigInt) -> LimbsWithOverflow {
         let mut limbs : [u32; NUM_LIMBS] = [0 as u32; NUM_LIMBS];
         let mut carry : u32 = 0;
@@ -189,13 +176,10 @@ impl BigInt {
             limbs: limbs,
         }
     }
-    
+
     // Returns self + other % modulus.
     // fn add_mod(self : Self, other : Self, modulus : Self)
     
-    // Returns self * other.
-    // fn mul(self : Self, other : Self)
-
     // Returns self * other % modulus.
     // fn mul_mod(self : Self, other : Self, modulus : Self)
     
@@ -241,6 +225,28 @@ impl BigInt {
     // Returns true iff this number is odd.
     fn is_odd(self : Self) -> bool {
         self.limbs[0] % 2 == 1
+    }
+
+    // Returns true iff all limbs are zero.
+    fn is_zero(self : Self) -> bool {
+        let mut result : bool = self.limbs[0] == 0;
+        for i in 1..NUM_LIMBS {
+            if result == true {
+                result = self.limbs[i] == 0;
+            }
+        };
+        result
+    }
+
+    // Returns true iff this number is one.
+    fn is_one(self : Self) -> bool {
+        let mut result : bool = self.limbs[0] == 1;
+        for i in 1..NUM_LIMBS {
+            if result == true {
+                result = self.limbs[i] == 0;
+            }
+        };
+        result
     }
 }
 
@@ -338,6 +344,8 @@ fn div_rem_core(mut a: BigInt, b: BigInt) -> BigInt {
 fn run_tests() {
     arithmetic::run_tests();
     division::run_tests();
+    test_from_bytes_be();
+    test_is_one_zero();
     test_add();
     test_mul();
     test_sub();
@@ -376,6 +384,32 @@ fn test_from_bytes_be() {
     test_from_bytes_be_case2();
 }
 
+
+// is_zero, is_one
+fn test_is_zero_case1() {
+    let a = BigInt::new([0 as u32; NUM_LIMBS]);
+    let b = BigInt::new([1 as u32, 0, 0, 0, 0, 0, 0, 0]);
+    let zero = BigInt::zero();
+    constrain a.is_zero() == true;
+    constrain b.is_zero() == false;
+    constrain zero.is_zero() == true;
+}
+
+fn test_is_one_case1() {
+    let a = BigInt::new([0 as u32; NUM_LIMBS]);
+    let b = BigInt::new([1 as u32, 0, 0, 0, 0, 0, 0, 0]);
+    let one = BigInt::one();
+    constrain a.is_one() == false;
+    constrain b.is_one() == true;
+    constrain one.is_one() == true;
+}
+
+fn test_is_one_zero() {
+    test_is_zero_case1();
+    test_is_one_case1();
+}
+
+
 // add
 fn test_add_case1() {
     let a = BigInt::new([1 as u32; NUM_LIMBS]);
@@ -387,8 +421,30 @@ fn test_add_case1() {
     constrain result.overflow == expected_overflow;
 }
 
+fn test_add_case2() {
+    let a = BigInt::new([u32_utils::U32_MAX as u32, u32_utils::U32_MAX as u32, u32_utils::U32_MAX as u32, 0, 0, 0, 0, 0]);
+    let b = BigInt::new([1 as u32, 0, 0, 0, 0, 0, 0, 0]);
+    let expected_sum_limbs = [0, 0, 0, 1, 0, 0, 0, 0];
+    let expected_overflow = 0;
+    let result = a.add(b);
+    constrain result.limbs == expected_sum_limbs;
+    constrain result.overflow == expected_overflow;
+}
+
+fn test_add_case3() {
+    let a = BigInt::new([u32_utils::U32_MAX as u32; NUM_LIMBS]);
+    let b = BigInt::new([1 as u32, 0, 0, 0, 0, 0, 0, 0]);
+    let expected_sum_limbs = [0, 0, 0, 0, 0, 0, 0, 0];
+    let expected_overflow = 1;
+    let result = a.add(b);
+    constrain result.limbs == expected_sum_limbs;
+    constrain result.overflow == expected_overflow;
+}
+
 fn test_add() {
     test_add_case1();
+    test_add_case2();
+    test_add_case3();
 }
 
 
