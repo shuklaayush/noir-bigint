@@ -6,11 +6,29 @@ global NUM_LIMBS : Field = 8;
 global LIMB_BITS : Field = 32;
 global LIMB_BYTES : Field = 4;
 
-// helper function
+global DOUBLE_LIMBS : Field = 16;
+
+// Limb helpers (maybe turn into a struct)
+global U96_POW_2_32 : u96 = 4294967296;
+global U96_POW_2_64 : u96 = 18446744073709551616;
+fn to_triple_limb(hi : u32, mid : u32, lo : u32) -> u96 {
+    (hi as u96 * U96_POW_2_64) | (mid as u96 * U96_POW_2_32) | (lo as u96)
+}
 
 // This defines a BigInt, a smart wrapper around a sequence of u32 limbs, least-significant limb first
 struct BigInt {
-    limbs : [u32; NUM_LIMBS]
+    limbs : [u32; NUM_LIMBS],
+}
+
+struct BigInt2 {
+    limbs : [u32; DOUBLE_LIMBS],
+}
+
+// TODO: This is a temporary solution that we are using because a struct inside of a tuple doesn't work 
+// https://github.com/noir-lang/noir/issues/492
+struct LimbsWithOverflow {
+    limbs : [u32; NUM_LIMBS],
+    overflow: u32,
 }
 
 impl BigInt {
@@ -46,10 +64,10 @@ impl BigInt {
             u32_utils::U32_POW_2_24,
         ];
 
-        let bytes_len = std::array::len(bytes);
+        let bytes_len = std::array::len(bytes) as u32;
         
         // TODO: Should we allow this?
-        constrain bytes_len <= MAX_BYTES;
+        constrain bytes_len <= MAX_BYTES as u32;
 
         let mut limbs = [0 as u32; NUM_LIMBS];
         let mut limb : u32 = 0;
@@ -58,7 +76,7 @@ impl BigInt {
             // i modulo 4
             let byte_significance = i - (limb_index * 4);
 
-            if i < bytes_len {
+            if i as u32 < bytes_len {
                 let mut byte : u32 = bytes[i] as u32;
                 byte = byte * SHIFTS[byte_significance];
                 limb = limb | byte;
@@ -74,18 +92,110 @@ impl BigInt {
     
     /// Math
 
-    // Returns self % modulus.
-    // fn pow(self : Self, modulus : Self)
+    // Returns last non-zero limb, its index, and the limb before it as tuple (msl_index, msl_minus_one, msl).
+    // Fails if most_significant_limb index < 1.
+    fn two_most_significant_limbs(self : Self) -> (u32, u32, u32) {
+        let mut msl_index = 0 as u32;
+        let mut msl = 0 as u32;
+        let mut msl_minus_one = 0 as u32;
+        for i in 0..NUM_LIMBS {
+            let j = NUM_LIMBS - i - 1;
+            if (self.limbs[j] > 0) & (msl == 0) {
+                msl_index = j as u32;
+                msl = self.limbs[j];
+                msl_minus_one = self.limbs[j - 1];
+            }
+        };
+        constrain msl_index >= 1;
+        (msl_index, msl_minus_one, msl)
+    }
 
-    // Returns self ^ exponent.
-    // fn pow(self : Self, exponent : u32)
+    // Returns last non-zero limb, its index, and the 2 limbs before it as tuple (msl_index, msl_minus_two, msl_minus_one, msl).
+    // Fails if most_significant_limb index < 2.
+    fn three_most_significant_limbs(self : Self) -> (u32, u32, u32, u32) {
+        let mut msl_index = 0 as u32;
+        let mut msl = 0 as u32;
+        let mut msl_minus_one = 0 as u32;
+        let mut msl_minus_two = 0 as u32;
+        for i in 0..NUM_LIMBS {
+            let j = NUM_LIMBS - i - 1;
+            if (self.limbs[j] > 0) & (msl == 0) {
+                msl_index = j as u32;
+                msl = self.limbs[j];
+                msl_minus_one = self.limbs[j - 1];
+                msl_minus_two = self.limbs[j - 2];
+            }
+        };
+        constrain msl_index >= 2;
+        (msl_index, msl_minus_two, msl_minus_one, msl)
+    }
+    
+    // Returns self % modulus.
+    // fn mod(self : Self, modulus : Self) -> Self {
+    //     let diff_result = modulus.sub(self);
+    //     // if there's no overflow then modulus > self, so self % modulus = self
+    //     if diff_result.overflow == false {
+    //         self
+    //     } else {
+
+    //     }
+    // }
+
+    // // Returns self ^ exponent.
+    // fn pow(self : Self, exponent : u32) -> Self {
+    //     
+    // }
     
     // Returns (self ^ exponent) % modulus.
     // fn pow_mod(self : Self, exponent : u32, modulus : Self)
     
     // Returns self + other
-    // fn add(self : Self, other : Self)
+    // fn add(self : Self, other : BigInt) -> (BigInt, bool) {
+    //     let mut limbs : [u32; NUM_LIMBS] = [0 as u32; NUM_LIMBS];
+    //     let mut carry : u32 = 0;
+    //     for i in 0..NUM_LIMBS {
+    //         let (limb_sum, new_carry) = arithmetic::add_limbs_with_carry(self.limbs[i], other.limbs[i], carry);
+    //         limbs[i] = limb_sum;
+    //         carry = new_carry;
+    //     };
+    //     let overflow : bool = carry != 0;
+    //     (BigInt::new(limbs), overflow)
+    // }
+    fn add(self : Self, other : BigInt) -> LimbsWithOverflow {
+        let mut limbs : [u32; NUM_LIMBS] = [0 as u32; NUM_LIMBS];
+        let mut carry : u32 = 0;
+        for i in 0..NUM_LIMBS {
+            let (limb_sum, new_carry) = arithmetic::add_limbs_with_carry(self.limbs[i], other.limbs[i], carry);
+            limbs[i] = limb_sum;
+            carry = new_carry;
+        };
+        LimbsWithOverflow {
+            limbs: limbs,
+            overflow: carry,
+        }
+    }
 
+    fn mul(self : Self, other : BigInt) -> BigInt2 {
+        // Double limbs won't overflow because the product of two N-limb arrays is never larger than 2N-limbs
+        // ((b^n) - 1) * ((b^n) - 1) = b^(2n) - 2(b^n) - 1 < b^(2n)
+        let mut limbs  = [0 as u32; DOUBLE_LIMBS];
+
+        for i in 0..NUM_LIMBS {
+            let mut carry : u32 = 0;
+            for j in 0..NUM_LIMBS {
+                let k = i + j;
+                let (limb_product, new_carry) = arithmetic::mul_limbs_with_carry(limbs[k], self.limbs[i], other.limbs[j], carry);
+                limbs[k] = limb_product;
+                carry = new_carry;
+            };
+            limbs[i + NUM_LIMBS] = carry;
+        };
+
+        BigInt2 {
+            limbs: limbs,
+        }
+    }
+    
     // Returns self + other % modulus.
     // fn add_mod(self : Self, other : Self, modulus : Self)
     
@@ -96,7 +206,38 @@ impl BigInt {
     // fn mul_mod(self : Self, other : Self, modulus : Self)
     
     // Returns self - other.
-    // fn sub(self : Self, other : Self)
+    fn sub(self : Self, other : Self) -> LimbsWithOverflow {
+        let mut limbs : [u32; NUM_LIMBS] = [0 as u32; NUM_LIMBS];
+        let mut borrow : u32 = 0;
+        for i in 0..NUM_LIMBS {
+            let (limb_diff, new_borrow) = arithmetic::sub_limbs_with_borrow(self.limbs[i], other.limbs[i], borrow);
+            limbs[i] = limb_diff;
+            borrow = new_borrow;
+        };
+        
+        // ToDo: This is a work around because structs in tuples don't work
+        LimbsWithOverflow {
+            limbs: limbs,
+            overflow: borrow,
+        }
+    }
+
+    // Returns self - (multiplicand * other).
+    fn sub_mul(self : Self, multiplicand : u32, other : BigInt) -> LimbsWithOverflow {
+        let mut limbs : [u32; NUM_LIMBS] = [0 as u32; NUM_LIMBS];
+        let mut borrow : u32 = 0;
+        for i in 0..NUM_LIMBS {
+            let (limb_diff, new_borrow) = arithmetic::sub_mul_limbs_with_borrow(self.limbs[i], multiplicand, other.limbs[i], borrow);
+            limbs[i] = limb_diff;
+            borrow = new_borrow;
+        };
+        
+        // ToDo: This is a work around because structs in tuples don't work
+        LimbsWithOverflow {
+            limbs: limbs,
+            overflow: borrow,
+        }
+    }
 
     // Returns true iff this number is even.
     fn is_even(self : Self) -> bool {
@@ -109,17 +250,186 @@ impl BigInt {
     }
 }
 
-fn main(x : Field, y : pub Field) {
-    constrain x != y;
+/// Divide a three limb numerator by a two limb divisor, returns quotient and remainder:
+///
+/// Note: the caller must ensure that both the quotient and remainder will fit into a single digit.
+/// This is _not_ true for an arbitrary numerator/denominator.
+fn div_wide(dividend_hi: u32, dividend_mid: u32, dividend_lo: u32, divisor_mid: u32, divisor_lo: u32) -> (u32, u64) {
+    // TODO: debug_assert!(hi < divisor);
+    let lhs = to_triple_limb(dividend_hi, dividend_mid, dividend_lo);
+    let rhs = to_triple_limb(0, divisor_mid, divisor_lo);
+    let q = lhs / rhs;
+    let r = lhs - (rhs * q);
+    (q as u32, r as u64)
+}
+
+/// For small divisors, we can divide without promoting to `DoubleBigDigit` by
+/// using half-size pieces of digit, like long-division.
+// fn div_half(rem: u32, digit: u32, divisor: u32) -> (u32, u32) {
+//     // TODO: debug_assert!(rem < divisor && divisor <= HALF);
+//     let (hi, rem) = ((rem << HALF_BITS) | (digit >> HALF_BITS)).div_rem(&divisor);
+//     let (lo, rem) = ((rem << HALF_BITS) | (digit & HALF)).div_rem(&divisor);
+//     ((hi << HALF_BITS) | lo, rem)
+// }
+
+// First, normalize the arguments so the highest bit in the highest limb of the divisor is
+// set: the main loop uses the highest limb of the divisor for generating guesses, so we
+// want it to be the largest number we can efficiently divide by.
+// Example:
+// 4-bit limbs
+// u = 767
+// r = 39
+// 767 / 40
+// 767 = 0010 1111 1111
+// 39  =      0010 0111
+// Now we shift so the MSB of the last limb of the divisor is set (0010 1111 -> 1011 1100), shift = 1, so
+// 767 = 0010 1111 1111 -shifted left 2-> 1011 1111 1100 = 3068 = a
+// 39  = 0000 0010 0111 -shifted left 2-> 0000 1001 1100 = 156 = b
+// We operate on little endian constructions and drop the leading limb on b because it's all 0s
+// a = [12, 15, 11]
+// b = [12, 9]
+//
+// [b1, b0] are the two most significant digits of the divisor. They never change.
+// b0 = 9
+// b1 = 12
+//
+// a0 stores an additional extra most significant digit of the dividend, not stored in a.
+// a0 = 0
+// a1 = 11
+// a2 = 15
+//
+// The first q0 estimate is [a1, a0] / b0. It will never be too small, it may be too large by at most 2.
+// 11 / 9 = 1r2
+//
+// while r <= big_digit::MAX as DoubleBigDigit
+//     && big_digit::to_doublebigdigit(r as BigDigit, a2) < q0 as DoubleBigDigit * b1 as DoubleBigDigit
+// Hi=2, Lo=15 < 1 * 15 = Hi=0, Lo=15
+// q0 - 1 = 0
+// r += 9 = 11
+// 
+// a0 = 11
+// a1 = 15
+//
+// q0=MAX=15
+// r=26
+//
+//
+//
+
+// /// Excerpted from https://docs.rs/num-bigint/latest/src/num_bigint/biguint/division.rs.html#210
+// /// An implementation of the base division algorithm.
+// /// Knuth, TAOCP vol 2 section 4.3.1, algorithm D, with an improvement from exercises 19-21.
+fn div_rem_core(mut a: BigInt, b: BigInt) -> BigInt {
+    // TODO: debug_assert!(a.data.len() >= b.len() && b.len() > 1);
+    // TODO: debug_assert!(b.last().unwrap().leading_zeros() == 0);
+
+    // The algorithm works by incrementally calculating "guesses", q0, for the next digit of the
+    // quotient. Once we have any number q0 such that (q0 << j) * b <= a, we can set
+    //
+    //     q += q0 << j
+    //     a -= (q0 << j) * b
+    //
+    // and then iterate until a < b. Then, (q, a) will be our desired quotient and remainder.
+    //
+    // q0, our guess, is calculated by dividing the last three digits of a by the last two digits of
+    // b - this will give us a guess that is close to the actual quotient, but is possibly greater.
+    // It can only be greater by 1 and only in rare cases, with probability at most
+    // 2^-(big_digit::BITS-1) for random a, see TAOCP 4.3.1 exercise 21.
+    //
+    // If the quotient turns out to be too large, we adjust it by 1:
+    // q -= 1 << j
+    // a += b << j
+
+    // a0 stores an additional extra most significant digit of the dividend, not stored in a.
+    let mut a0 = 0 as u32;
+    let (mut a_msl_index, mut a2, mut a1) = a.two_most_significant_limbs();
+
+    // [b1, b0] are the two most significant digits of the divisor. They never change.
+    let (b_msl_index, b1, b0) = b.two_most_significant_limbs();
+
+    let q_len = a_msl_index - b_msl_index + 1;
+    let mut q_limbs = [0 as u32; NUM_LIMBS];
+    
+    // TODO: REMOVE
+    constrain q_limbs[0] == 0;
+
+    for i in 0..NUM_LIMBS {
+        let j = NUM_LIMBS - i;
+        if j as u32 < q_len {
+            // TODO: debug_assert!(a.data.len() == b.len() + j);
+            // The first q_estimate is [a2,a1,a0] / [b1,b0]. It will never be too small, it may be too large
+            // by at most 1.
+            let mut q_estimate = 0 as u32;
+            let mut r = 0 as u64;
+            if a0 < b0 {
+                let result = div_wide(a0, a1, a2, b0, b1);
+                q_estimate = result.0;
+                r = result.1;
+            } else {
+                // TODO: debug_assert!(a0 == b0);
+                // Avoid overflowing q_estimate
+                // [a1,a0] = b0 * (1<<BITS - 1) + (a0 + a1)
+                // (big_digit::MAX, a0 as DoubleBigDigit + a1 as DoubleBigDigit)
+            };
+            
+            // q_estimate is now either the correct quotient limb, 1 too large.
+            // Subtract (q_estimate << j) * b from a. This may overflow, in which case we will have to correct.
+
+            // let mut borrow = sub_mul_digit_same_len(&mut a.data[j..], b, q0);
+            let mut sub_mul_result = a.sub_mul(q_estimate, b);
+            a = BigInt::new(sub_mul_result.limbs);
+            let mut borrow = sub_mul_result.overflow;
+            if borrow > 0 {
+                // q_estimate is too large. We need to add back one multiple of b.
+                q_estimate = q_estimate - 1;
+                let add_result = a.add(b);
+                a = BigInt::new(add_result.limbs);
+                borrow = borrow - add_result.overflow;
+            }
+            // The top digit of a, stored in a0, has now been zeroed.
+            // TODO: debug_assert!(borrow == a0);
+
+            q_limbs[j] = q_estimate;
+
+            // Don't do this on the last iteration when the quotient is fully formed
+            if j != 0 {
+                let (a_msl_index_update, a2_update, a1_update, a0_update) = a.three_most_significant_limbs();
+                a_msl_index = a_msl_index_update;
+                a0 = a0_update;
+                a1 = a1_update;
+                a2 = a2_update;
+            }
+        }
+    };
+    // (BigInt::new(q_limbs), a)
+    BigInt::new(q_limbs)
+}
+
+
+fn main(x : [u32; NUM_LIMBS], y : [u32; NUM_LIMBS]) {
+    constrain x == y;
+    // let x_as_bigint = BigInt::new(x);
+    // let y_as_bigint = BigInt::new(y);
+    // let product = x_as_bigint.mul(y_as_bigint);
+    // let expected_product_limbs = [1 as u32, 0, 0, 0, 0, 0, 0, 0, 4294967294, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295];
+    // constrain product.limbs == expected_product_limbs;
     run_tests();
     arithmetic::run_tests();
 }
 
 // Tests
 fn run_tests() {
-    test_from_bytes_be();
+    // test_from_bytes_be();
+    // test_add();
+    // test_mul();
+    // test_sub();
+    // test_sub_mul();
+    // test_msl();
+    test_div_wide();
+    // test_div_rem_core();
 }
 
+// from_bytes_be
 fn test_from_bytes_be_case1() {
     // TODO: this line causes a weird bug that I think is related to MAX_BYTES existing in a diff function
     // let MAX_BYTES : comptime Field = NUM_LIMBS * LIMB_BYTES;
@@ -144,8 +454,236 @@ fn test_from_bytes_be_case2() {
     };
 }
 
-
 fn test_from_bytes_be() {
     test_from_bytes_be_case1();
     test_from_bytes_be_case2();
 }
+
+// add
+fn test_add_case1() {
+    let a = BigInt::new([1 as u32; NUM_LIMBS]);
+    let b = BigInt::new([2 as u32; NUM_LIMBS]);
+    let expected_sum_limbs = [3 as u32; NUM_LIMBS];
+    let expected_overflow = 0;
+    let result = a.add(b);
+    constrain result.limbs == expected_sum_limbs;
+    constrain result.overflow == expected_overflow;
+}
+
+fn test_add() {
+    test_add_case1();
+}
+
+
+// sub
+fn test_sub_case1() {
+    let a = BigInt::new([3 as u32; NUM_LIMBS]);
+    let b = BigInt::new([1 as u32; NUM_LIMBS]);
+    let expected_diff_limbs = [2 as u32; NUM_LIMBS];
+    let expected_overflow = 0;
+    let result = a.sub(b);
+    constrain result.limbs == expected_diff_limbs;
+    constrain result.overflow == expected_overflow;
+}
+
+fn test_sub_case2() {
+    let a = BigInt::new([4 as u32, 2, 0, 0, 0, 0, 0, 0]);
+    let b = BigInt::new([5 as u32, 0, 0, 0, 0, 0, 0, 0]);
+    let expected_diff_limbs : [u32; 8] = [u32_utils::U32_MAX as u32, 1, 0, 0, 0, 0, 0, 0];
+    let expected_overflow = 0;
+    let result = a.sub(b);
+    constrain result.limbs == expected_diff_limbs;
+    constrain result.overflow == expected_overflow;
+}
+
+fn test_sub_case3() {
+    let a = BigInt::new([4 as u32, 0, 0, 0, 0, 0, 0, 0]);
+    let b = BigInt::new([5 as u32, 0, 0, 0, 0, 0, 0, 0]);
+    let expected_diff_limbs : [u32; 8] = [u32_utils::U32_MAX as u32; 8];
+    let expected_overflow = 1;
+    let result = a.sub(b);
+    constrain result.limbs == expected_diff_limbs;
+    constrain result.overflow == expected_overflow;
+}
+
+fn test_sub() {
+    test_sub_case1();
+    test_sub_case2();
+    test_sub_case3();
+}
+
+// mul
+fn test_mul_case1() {
+    let a = BigInt::new([5 as u32, 0, 0, 0, 0, 0, 0, 0]);
+    let b = BigInt::new([5 as u32, 0, 0, 0, 0, 0, 0, 0]);
+    let expected_product_limbs = [25 as u32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    let product = a.mul(b);
+    constrain product.limbs == expected_product_limbs;
+}
+
+fn test_mul_case2() {
+    let a = BigInt::new([u32_utils::U32_MAX; NUM_LIMBS]);
+    let b = BigInt::new([u32_utils::U32_MAX; NUM_LIMBS]);
+    let expected_product_limbs = [1 as u32, 0, 0, 0, 0, 0, 0, 0, 4294967294, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295];
+    let product = a.mul(b);
+    constrain product.limbs == expected_product_limbs;
+}
+
+fn test_mul() {
+    test_mul_case1();
+    test_mul_case2();
+}
+
+
+// sub_mul
+fn test_sub_mul_case1() {
+    let a = BigInt::new([u32_utils::U32_MAX, u32_utils::U32_MAX, u32_utils::U32_MAX, 0, 0, 0, 0, 0]);
+    let b = u32_utils::U32_MAX;
+    let c = BigInt::new([u32_utils::U32_MAX, u32_utils::U32_MAX, 0, 0, 0, 0, 0, 0]);
+    let expected_product_limbs : [u32; 8] = [u32_utils::U32_MAX - 1, 0, 1, 0, 0, 0, 0, 0];
+    let product = a.sub_mul(b, c);
+    constrain product.limbs == expected_product_limbs;
+}
+
+fn test_sub_mul() {
+    test_sub_mul_case1();
+}
+
+
+// msl
+fn test_msl_case1() {
+    let a = BigInt::new([u32_utils::U32_MAX, u32_utils::U32_MAX, u32_utils::U32_MAX, 0, 0, 0, 0, 0]);
+    let expected_msl_index = 2;
+    let expected_msl : u32 = a.limbs[2];
+    let expected_msl_minus_one = a.limbs[1];
+    let (msl_index, msl_minus_one , msl) = a.two_most_significant_limbs();
+    constrain expected_msl_index == msl_index;
+    constrain expected_msl == msl;
+    constrain expected_msl_minus_one == msl_minus_one;
+}
+
+fn test_msl_case2() {
+    let a = BigInt::new([u32_utils::U32_MAX, u32_utils::U32_MAX, u32_utils::U32_MAX, 0, 0, 0, 0, 1]);
+    let expected_msl_index = 7;
+    let expected_msl : u32 = 1;
+    let expected_msl_minus_one = 0;
+    let (msl_index, msl_minus_one , msl) = a.two_most_significant_limbs();
+    constrain expected_msl_index == msl_index;
+    constrain expected_msl == msl;
+    constrain expected_msl_minus_one == msl_minus_one;
+}
+
+fn test_msl_case3() {
+    let a = BigInt::new([0, 0, 100, 0, 1, 0, 0, 0]);
+    let expected_msl_index = 4;
+    let expected_msl : u32 = 1;
+    let expected_msl_minus_one = 0;
+    let expected_msl_minus_two = 100;
+    let (msl_index, msl_minus_two, msl_minus_one , msl) = a.three_most_significant_limbs();
+    constrain expected_msl_index == msl_index;
+    constrain expected_msl == msl;
+    constrain expected_msl_minus_one == msl_minus_one;
+    constrain expected_msl_minus_two == msl_minus_two;
+}
+
+fn test_msl_case4() {
+    let a = BigInt::new([1, 2, 3, 0, 0, 0, 0, 0]);
+    let expected_msl_index = 2;
+    let expected_msl : u32 = 3;
+    let expected_msl_minus_one = 2;
+    let expected_msl_minus_two = 1;
+    let (msl_index, msl_minus_two, msl_minus_one , msl) = a.three_most_significant_limbs();
+    constrain expected_msl_index == msl_index;
+    constrain expected_msl == msl;
+    constrain expected_msl_minus_one == msl_minus_one;
+    constrain expected_msl_minus_two == msl_minus_two;
+}
+
+fn test_msl() {
+    test_msl_case1();
+    test_msl_case2();
+    test_msl_case3();
+    test_msl_case4();
+}
+
+
+// div_wide
+fn test_div_wide_case1() {
+    let dividend_hi = 1;
+    let dividend_mid = 0;
+    let dividend_lo = 0;
+    let divisor_mid = 5;
+    let divisor_lo = 139;
+    let expected_q = 858993453;
+    let expected_r = 13743896209;
+    let (q, r) = div_wide(dividend_hi, dividend_mid, dividend_lo, divisor_mid, divisor_lo);
+    constrain expected_q == q;
+    constrain expected_r == r;
+}
+
+fn test_div_wide() {
+    test_div_wide_case1();
+}
+
+
+// div_rem_core
+fn test_div_rem_core_case1() {
+    let a = BigInt::new([0, 0, 0, 0, 1, 0, 0, 0]);
+    let b = BigInt::new([9, 9, 1, 0, 0, 0, 0, 0]);
+    // let expected_product_limbs : [u32; 8] = [u32_utils::U32_MAX - 1, 0, 1, 0, 0, 0, 0, 0];
+    let q = div_rem_core(a, b);
+    constrain q.limbs[0] != 1;
+}
+
+fn test_div_rem_core() {
+    test_div_rem_core_case1();
+}
+
+
+// CSOS workout
+// i=0, j=0, k=0
+// [9, 7]          // 79
+// [2, 3]          // 32
+// carry=0
+// -------------
+// 0 + (9 * 2) + 0 = 18
+// carry=1
+// [8, X, X, X]    // Scratch
+//  _
+// 
+// i=0, j=1, k=1
+// [9, 7]          // 79
+// [2, 3]          // 32
+// carry=1
+// -------------
+// 0 + (9 * 3) + 1 = 28
+// carry=2
+// [8, 8, X, X]    // Scratch
+//     _
+// 
+// [8, 8, 2, X]    // Scratch[i + NUM_LIMBS] = carry
+// 
+// Reset carry = 0
+// 
+// i=1, j=0, k=1
+// [9, 7]          // 79
+// [2, 3]          // 32
+// carry=0
+// -------------
+// 8 + (7 * 2) + 0 = 22
+// carry=2
+// [8, 2, 2, X]    // Scratch
+//     _
+// 
+// 
+// i=1, j=1, k=2
+// [9, 7]          // 79
+// [2, 3]          // 32
+// carry=2
+// -------------
+// 2 + (7 * 3) + 2 = 25
+// carry=2
+// [8, 2, 5, X]    // Scratch
+//        _
+// 
+// [8, 2, 5, 2]    // Scratch[i + NUM_LIMBS] = carry

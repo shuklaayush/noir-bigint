@@ -7,6 +7,7 @@ global U32_POW_2_8 : u32 = 256;
 global U32_POW_2_14 : u32 = 16384;
 global U32_POW_2_16 : u32 = 65536;
 global U32_POW_2_24 : u32 = 16777216;
+global U32_MAX : u32 = 4294967295;
 
 fn shift_left_8(x : u32) -> u32 {
     x * U32_POW_2_8

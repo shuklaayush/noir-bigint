@@ -21,14 +21,52 @@ fn sub_limbs_with_borrow(a: u32, b: u32, borrow: u32) -> (u32, u32) {
     }
 }
 
-// returns product = (a * b) + carry, and the new carry.
-fn mul_limbs_with_carry(a: u32, b: u32, carry: u32) -> (u32, u32) {
-    let product : u64 = a as u64 * b as u64 + carry as u64;
-    let new_carry : u32 = ((product & U64_UPPER_32_BITS) / U64_POW_2_32) as u32;
-    ((product & U64_LOWER_32_BITS) as u32, new_carry)
+// TODO: Tests for max b and 0 b
+// Returns diff = a - (b * c) - borrow, and the new borrow.
+fn sub_mul_limbs_with_borrow(a: u32, b: u32, c: u32, borrow: u32) -> (u32, u32) {
+    let diff_with_overflow : u64 = (U64_UPPER_32_BITS as u64) + (a as u64) - (b as u64 * c as u64) - (borrow as u64);
+    let diff = diff_with_overflow & U64_LOWER_32_BITS;
+    let new_borrow = ((U64_UPPER_32_BITS - (diff_with_overflow & U64_UPPER_32_BITS)) / U64_POW_2_32) as u32;
+    ((diff & U64_LOWER_32_BITS) as u32, new_borrow)
 }
 
-// fn bytes_mul(multiplicand : [u8; BYTES_ARRAY_LENGTH], multiplier : [u8; BYTES_ARRAY_LENGTH]) -> [u8; TWO_BYTES_ARRAY_LENGTH] {
+// 9999 - (9 * 99)
+
+// borrow = 0
+// 9 - 9 * 9 - 0
+// 99 - 09 * 09 - 0 = 18
+// diff = 8
+// borrow = 9 - 1 = 8
+
+// borrow = 8
+// 9 - 9 * 9 - 8
+// 99 - 09 * 09 - 8 = 10
+// diff = 0
+// borrow = 9 - 1 = 8
+
+// borrow = 8
+// 9 - 9 * 0 - 8
+// 99 - 09 * 0 - 8 = 91
+// diff = 1
+// borrow = 9 - 9 = 0
+
+// borrow = 0
+// 9 - 9 * 0 - 0
+// 99 - 09 * 0 - 0 = 99
+// diff = 9
+// borrow = 9 - 9 = 0
+
+// Result: 9108
+
+
+
+// returns a + (b * c) + carry, and the new carry.
+fn mul_limbs_with_carry(a: u32, b: u32, c: u32, carry: u32) -> (u32, u32) {
+    let calc_result : u64 = a as u64  + (b as u64 * c as u64) + carry as u64;
+    let new_carry : u32 = ((calc_result & U64_UPPER_32_BITS) / U64_POW_2_32) as u32;
+    ((calc_result & U64_LOWER_32_BITS) as u32, new_carry)
+}
+
 
 // Tests
 fn run_tests() {
@@ -151,34 +189,37 @@ fn test_sub_limbs() {
 
 // mul_limbs_with_carry
 fn test_mul_limbs_with_carry_case1() {
-    let a = 9;
-    let b = 11;
+    let a = 75;
+    let b = 9;
+    let c = 11;
     let carry = 7;
-    let expected_product = 106;
+    let expected_product = 181;
     let expected_new_carry = 0;
-    let (product, new_carry) = mul_limbs_with_carry(a, b, carry);
+    let (product, new_carry) = mul_limbs_with_carry(a, b, c, carry);
     constrain product == expected_product;
     constrain new_carry == expected_new_carry;
 }
 
 fn test_mul_limbs_with_carry_case2() {
-    let a = 4294967295; // 2^32 - 1
+    let a = 0;
     let b = 4294967295; // 2^32 - 1
+    let c = 4294967295; // 2^32 - 1
     let carry = 0;
     let expected_product = 1;
     let expected_new_carry = 4294967294; // 2^32 - 2
-    let (product, new_carry) = mul_limbs_with_carry(a, b, carry);
+    let (product, new_carry) = mul_limbs_with_carry(a, b, c, carry);
     constrain product == expected_product;
     constrain new_carry == expected_new_carry;
 }
 
 fn test_mul_limbs_with_carry_case3() {
-    let a = 4294967295; // 2^32 - 1
+    let a = 0;
     let b = 4294967295; // 2^32 - 1
+    let c = 4294967295; // 2^32 - 1
     let carry = 4294967295; // 2^32 - 1
     let expected_product = 0;
     let expected_new_carry = 4294967295; // 2^32 - 1
-    let (product, new_carry) = mul_limbs_with_carry(a, b, carry);
+    let (product, new_carry) = mul_limbs_with_carry(a, b, c, carry);
     constrain product == expected_product;
     constrain new_carry == expected_new_carry;
 }
