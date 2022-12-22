@@ -178,7 +178,7 @@ impl BigInt {
     // fn mul_mod(self : Self, other : Self, modulus : Self)
     
     // Returns self - other.
-    fn sub(self : Self, other : Self) -> LimbsWithOverflow {
+    fn sub(self : Self, other : Self) -> (BigInt, u32) {
         let mut limbs : [u32; constants::NUM_LIMBS] = [0 as u32; constants::NUM_LIMBS];
         let mut borrow : u32 = 0;
         for i in 0..constants::NUM_LIMBS {
@@ -187,11 +187,7 @@ impl BigInt {
             borrow = new_borrow;
         };
         
-        // ToDo: This is a work around because structs in tuples don't work
-        LimbsWithOverflow {
-            limbs: limbs,
-            overflow: borrow,
-        }
+        (BigInt::new(limbs), borrow)
     }
     
     fn shift(self : Self, shift : u32, left : bool) -> BigInt {
@@ -419,9 +415,9 @@ fn test_sub_case1() {
     let b = BigInt::new([1 as u32; constants::NUM_LIMBS]);
     let expected_diff_limbs = [2 as u32; constants::NUM_LIMBS];
     let expected_overflow = 0;
-    let result = a.sub(b);
-    constrain result.limbs == expected_diff_limbs;
-    constrain result.overflow == expected_overflow;
+    let (difference, overflow) = a.sub(b);
+    constrain difference.limbs == expected_diff_limbs;
+    constrain overflow == expected_overflow;
 }
 
 fn test_sub_case2() {
@@ -429,9 +425,9 @@ fn test_sub_case2() {
     let b = BigInt::new([5 as u32, 0, 0, 0, 0, 0, 0, 0]);
     let expected_diff_limbs : [u32; 8] = [constants::U32_MAX as u32, 1, 0, 0, 0, 0, 0, 0];
     let expected_overflow = 0;
-    let result = a.sub(b);
-    constrain result.limbs == expected_diff_limbs;
-    constrain result.overflow == expected_overflow;
+    let (difference, overflow) = a.sub(b);
+    constrain difference.limbs == expected_diff_limbs;
+    constrain overflow == expected_overflow;
 }
 
 fn test_sub_case3() {
@@ -439,9 +435,9 @@ fn test_sub_case3() {
     let b = BigInt::new([5 as u32, 0, 0, 0, 0, 0, 0, 0]);
     let expected_diff_limbs : [u32; 8] = [constants::U32_MAX as u32; 8];
     let expected_overflow = 1;
-    let result = a.sub(b);
-    constrain result.limbs == expected_diff_limbs;
-    constrain result.overflow == expected_overflow;
+    let (difference, overflow) = a.sub(b);
+    constrain difference.limbs == expected_diff_limbs;
+    constrain overflow == expected_overflow;
 }
 
 fn test_sub() {
