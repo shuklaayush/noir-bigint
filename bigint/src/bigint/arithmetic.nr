@@ -1,3 +1,5 @@
+use crate::constants;
+
 global U64_LOWER_32_BITS : u64 = 4294967295;
 global U64_UPPER_32_BITS : u64 = 18446744069414584320;
 global U64_POW_2_32 : u64 = 4294967296;
@@ -30,43 +32,12 @@ fn sub_mul_limbs_with_borrow(a: u32, b: u32, c: u32, borrow: u32) -> (u32, u32) 
     ((diff & U64_LOWER_32_BITS) as u32, new_borrow)
 }
 
-// 9999 - (9 * 99)
-
-// borrow = 0
-// 9 - 9 * 9 - 0
-// 99 - 09 * 09 - 0 = 18
-// diff = 8
-// borrow = 9 - 1 = 8
-
-// borrow = 8
-// 9 - 9 * 9 - 8
-// 99 - 09 * 09 - 8 = 10
-// diff = 0
-// borrow = 9 - 1 = 8
-
-// borrow = 8
-// 9 - 9 * 0 - 8
-// 99 - 09 * 0 - 8 = 91
-// diff = 1
-// borrow = 9 - 9 = 0
-
-// borrow = 0
-// 9 - 9 * 0 - 0
-// 99 - 09 * 0 - 0 = 99
-// diff = 9
-// borrow = 9 - 9 = 0
-
-// Result: 9108
-
-
-
 // returns a + (b * c) + carry, and the new carry.
 fn mul_limbs_with_carry(a: u32, b: u32, c: u32, carry: u32) -> (u32, u32) {
     let calc_result : u64 = a as u64  + (b as u64 * c as u64) + carry as u64;
     let new_carry : u32 = ((calc_result & U64_UPPER_32_BITS) / U64_POW_2_32) as u32;
     ((calc_result & U64_LOWER_32_BITS) as u32, new_carry)
 }
-
 
 // Tests
 fn run_tests() {

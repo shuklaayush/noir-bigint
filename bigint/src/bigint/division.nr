@@ -1,9 +1,12 @@
 // Limb helpers (maybe turn into a struct)
 global U96_POW_2_32 : u96 = 4294967296;
 global U96_POW_2_64 : u96 = 18446744073709551616;
-fn to_triple_limb(hi : u32, mid : u32, lo : u32) -> u96 {
-    (hi as u96 * U96_POW_2_64) | (mid as u96 * U96_POW_2_32) | (lo as u96)
-}
+
+// TODO: Blocked by https://github.com/noir-lang/noir/issues/580
+// fn to_triple_limb(hi : u32, mid : u32, lo : u32) -> u96 {
+//     // (hi as u96 * U96_POW_2_64) | (mid as u96 * U96_POW_2_32) | (lo as u96)
+//     (hi as u96 * U96_POW_2_64) + (mid as u96 * U96_POW_2_32) + (lo as u96)
+// }
 
 /// Divide a three limb numerator by a two limb divisor, returns quotient and remainder:
 ///
@@ -11,10 +14,10 @@ fn to_triple_limb(hi : u32, mid : u32, lo : u32) -> u96 {
 /// This is _not_ true for an arbitrary numerator/denominator.
 fn div_wide(dividend_hi: u32, dividend_mid: u32, dividend_lo: u32, divisor_mid: u32, divisor_lo: u32) -> (u32, u64) {
     // TODO: debug_assert!(hi < divisor);
-    let lhs = to_triple_limb(dividend_hi, dividend_mid, dividend_lo);
-    let rhs = to_triple_limb(0, divisor_mid, divisor_lo);
-    let q = lhs / rhs;
-    let r = lhs - (rhs * q);
+    let dividend = (dividend_hi as u96 * U96_POW_2_64) + (dividend_mid as u96 * U96_POW_2_32) + (dividend_lo as u96);
+    let divisor = (divisor_mid as u96 * U96_POW_2_32) + (divisor_lo as u96);
+    let q = dividend / divisor;
+    let r = dividend - (divisor * q);
     (q as u32, r as u64)
 }
 
@@ -46,6 +49,21 @@ fn test_div_wide_case1() {
     constrain expected_r == r;
 }
 
+fn test_div_wide_case2() {
+    let dividend_hi = 1;
+    let dividend_mid = 2147483670;
+    let dividend_lo = 2147483675;
+    let divisor_mid = 2;
+    let divisor_lo = 9;
+    let expected_q = 3221225479;
+    let expected_r = 7516192732;
+    let (q, r) = div_wide(dividend_hi, dividend_mid, dividend_lo, divisor_mid, divisor_lo);
+    constrain expected_q == q;
+    constrain expected_r == r;
+}
+
+
 fn test_div_wide() {
     test_div_wide_case1();
+    test_div_wide_case2();
 }
