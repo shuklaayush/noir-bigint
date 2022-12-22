@@ -101,11 +101,11 @@ fn div_rem_core(mut a: BigInt, b: BigInt) -> BigInt {
             if borrow > 0 {
                 // q_estimate is too large. We need to add back one multiple of b.
                 q_estimate = q_estimate - 1;
-                let add_result = a.add(b);
-                a_limbs = add_result.limbs;
-                borrow = borrow - add_result.overflow;
+                let (sum, sum_overflow) = a.add(b);
+                a = sum;
+                borrow = borrow - sum_overflow;
             }
-            a = BigInt::new(a_limbs);
+            // a = BigInt::new(a_limbs);
 
             // The top digit of a, stored in a0, has now been zeroed.
             // TODO: debug_assert!(borrow == a0);
@@ -129,7 +129,7 @@ fn div_rem_core(mut a: BigInt, b: BigInt) -> BigInt {
 /// Tests
 fn run_tests() {
     test_div_wide();
-    // test_div_rem_core();
+    test_div_rem_core();
 }
 
 // div_wide

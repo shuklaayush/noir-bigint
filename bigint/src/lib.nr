@@ -136,7 +136,7 @@ impl BigInt {
     // Returns (self ^ exponent) % modulus.
     // fn pow_mod(self : Self, exponent : u32, modulus : Self)
     
-    fn add(self : Self, other : BigInt) -> LimbsWithOverflow {
+    fn add(self : Self, other : BigInt) -> (BigInt, u32) {
         let mut limbs : [u32; constants::NUM_LIMBS] = [0 as u32; constants::NUM_LIMBS];
         let mut carry : u32 = 0;
         for i in 0..constants::NUM_LIMBS {
@@ -144,10 +144,7 @@ impl BigInt {
             limbs[i] = limb_sum;
             carry = new_carry;
         };
-        LimbsWithOverflow {
-            limbs: limbs,
-            overflow: carry,
-        }
+        (BigInt::new(limbs), carry)
     }
 
     fn mul(self : Self, other : BigInt) -> BigInt2 {
@@ -377,9 +374,9 @@ fn test_add_case1() {
     let b = BigInt::new([2 as u32; constants::NUM_LIMBS]);
     let expected_sum_limbs = [3 as u32; constants::NUM_LIMBS];
     let expected_overflow = 0;
-    let result = a.add(b);
-    constrain result.limbs == expected_sum_limbs;
-    constrain result.overflow == expected_overflow;
+    let (sum, overflow) = a.add(b);
+    constrain sum.limbs == expected_sum_limbs;
+    constrain overflow == expected_overflow;
 }
 
 fn test_add_case2() {
@@ -387,9 +384,9 @@ fn test_add_case2() {
     let b = BigInt::new([1 as u32, 0, 0, 0, 0, 0, 0, 0]);
     let expected_sum_limbs = [0, 0, 0, 1, 0, 0, 0, 0];
     let expected_overflow = 0;
-    let result = a.add(b);
-    constrain result.limbs == expected_sum_limbs;
-    constrain result.overflow == expected_overflow;
+    let (sum, overflow) = a.add(b);
+    constrain sum.limbs == expected_sum_limbs;
+    constrain overflow == expected_overflow;
 }
 
 fn test_add_case3() {
@@ -397,9 +394,9 @@ fn test_add_case3() {
     let b = BigInt::new([1 as u32, 0, 0, 0, 0, 0, 0, 0]);
     let expected_sum_limbs = [0, 0, 0, 0, 0, 0, 0, 0];
     let expected_overflow = 1;
-    let result = a.add(b);
-    constrain result.limbs == expected_sum_limbs;
-    constrain result.overflow == expected_overflow;
+    let (sum, overflow) = a.add(b);
+    constrain sum.limbs == expected_sum_limbs;
+    constrain overflow == expected_overflow;
 }
 
 fn test_add() {
