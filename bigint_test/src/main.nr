@@ -1,6 +1,6 @@
-mod bigint;
+use dep::bigint;
 
-fn main(x : [u32; bigint::NUM_LIMBS], y : [u32; bigint::NUM_LIMBS]) -> pub u32{
+fn main(x : [u32; bigint::NUM_LIMBS], y : [u32; bigint::NUM_LIMBS]) -> pub u32 {
     constrain x != y;
     // let x_as_bigint = BigInt::new(x);
     // let y_as_bigint = BigInt::new(y);
@@ -24,9 +24,10 @@ fn main(x : [u32; bigint::NUM_LIMBS], y : [u32; bigint::NUM_LIMBS]) -> pub u32{
     // let e = (b.limbs[2] | b.limbs[1]) + 1 - 1;
     // let c = (a.limbs[4] & a.limbs[3]) / (b.limbs[2] | b.limbs[1]);
     
+    bigint::constants::U64_LOWER_32_BITS as u32
     // let q = bigint::div_rem_core(a, b);
-    let x = a.mul(b);
-    x.limbs[0]
+    // let x = a.mul(b);
+    // x.limbs[2]
     // constrain q.limbs[0] == 3221225479;
     // constrain q.limbs[1] == 2147483645;
     // constrain q.limbs[2] == 0;

@@ -1,6 +1,5 @@
 use dep::std;
 mod constants;
-mod u32_utils;
 mod arithmetic;
 mod division;
 
@@ -54,10 +53,10 @@ impl BigInt {
         // The maximum number of bytes that can fit in this bigint
         let MAX_BYTES : comptime Field = NUM_LIMBS * LIMB_BYTES;
         let SHIFTS : [comptime u32; 4] = [
-            u32_utils::U32_POW_2_0,
-            u32_utils::U32_POW_2_8,
-            u32_utils::U32_POW_2_16,
-            u32_utils::U32_POW_2_24,
+            constants::U32_POW_2_0,
+            constants::U32_POW_2_8,
+            constants::U32_POW_2_16,
+            constants::U32_POW_2_24,
         ];
 
         let bytes_len = std::array::len(bytes) as u32;
@@ -415,14 +414,14 @@ fn div_rem_core(mut a: BigInt, b: BigInt) -> BigInt {
 // Tests
 fn run_tests() {
     arithmetic::run_tests();
-    // division::run_tests();
-    // test_from_bytes_be();
-    // test_is_one_zero();
-    // test_add();
-    // test_mul();
-    // test_sub();
-    // test_sub_mul();
-    // test_msl();
+    division::run_tests();
+    test_from_bytes_be();
+    test_is_one_zero();
+    test_add();
+    test_mul();
+    test_sub();
+    test_sub_mul();
+    test_msl();
     // test_div_rem_core();
 }
 
@@ -494,7 +493,7 @@ fn test_add_case1() {
 }
 
 fn test_add_case2() {
-    let a = BigInt::new([u32_utils::U32_MAX as u32, u32_utils::U32_MAX as u32, u32_utils::U32_MAX as u32, 0, 0, 0, 0, 0]);
+    let a = BigInt::new([constants::U32_MAX as u32, constants::U32_MAX as u32, constants::U32_MAX as u32, 0, 0, 0, 0, 0]);
     let b = BigInt::new([1 as u32, 0, 0, 0, 0, 0, 0, 0]);
     let expected_sum_limbs = [0, 0, 0, 1, 0, 0, 0, 0];
     let expected_overflow = 0;
@@ -504,7 +503,7 @@ fn test_add_case2() {
 }
 
 fn test_add_case3() {
-    let a = BigInt::new([u32_utils::U32_MAX as u32; NUM_LIMBS]);
+    let a = BigInt::new([constants::U32_MAX as u32; NUM_LIMBS]);
     let b = BigInt::new([1 as u32, 0, 0, 0, 0, 0, 0, 0]);
     let expected_sum_limbs = [0, 0, 0, 0, 0, 0, 0, 0];
     let expected_overflow = 1;
@@ -534,7 +533,7 @@ fn test_sub_case1() {
 fn test_sub_case2() {
     let a = BigInt::new([4 as u32, 2, 0, 0, 0, 0, 0, 0]);
     let b = BigInt::new([5 as u32, 0, 0, 0, 0, 0, 0, 0]);
-    let expected_diff_limbs : [u32; 8] = [u32_utils::U32_MAX as u32, 1, 0, 0, 0, 0, 0, 0];
+    let expected_diff_limbs : [u32; 8] = [constants::U32_MAX as u32, 1, 0, 0, 0, 0, 0, 0];
     let expected_overflow = 0;
     let result = a.sub(b);
     constrain result.limbs == expected_diff_limbs;
@@ -544,7 +543,7 @@ fn test_sub_case2() {
 fn test_sub_case3() {
     let a = BigInt::new([4 as u32, 0, 0, 0, 0, 0, 0, 0]);
     let b = BigInt::new([5 as u32, 0, 0, 0, 0, 0, 0, 0]);
-    let expected_diff_limbs : [u32; 8] = [u32_utils::U32_MAX as u32; 8];
+    let expected_diff_limbs : [u32; 8] = [constants::U32_MAX as u32; 8];
     let expected_overflow = 1;
     let result = a.sub(b);
     constrain result.limbs == expected_diff_limbs;
@@ -567,8 +566,8 @@ fn test_mul_case1() {
 }
 
 fn test_mul_case2() {
-    let a = BigInt::new([u32_utils::U32_MAX; NUM_LIMBS]);
-    let b = BigInt::new([u32_utils::U32_MAX; NUM_LIMBS]);
+    let a = BigInt::new([constants::U32_MAX; NUM_LIMBS]);
+    let b = BigInt::new([constants::U32_MAX; NUM_LIMBS]);
     let expected_product_limbs = [1 as u32, 0, 0, 0, 0, 0, 0, 0, 4294967294, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295];
     let product = a.mul(b);
     constrain product.limbs == expected_product_limbs;
@@ -582,10 +581,10 @@ fn test_mul() {
 
 // sub_mul
 fn test_sub_mul_case1() {
-    let a = BigInt::new([u32_utils::U32_MAX, u32_utils::U32_MAX, u32_utils::U32_MAX, 0, 0, 0, 0, 0]);
-    let b = u32_utils::U32_MAX;
-    let c = BigInt::new([u32_utils::U32_MAX, u32_utils::U32_MAX, 0, 0, 0, 0, 0, 0]);
-    let expected_product_limbs : [u32; 8] = [u32_utils::U32_MAX - 1, 0, 1, 0, 0, 0, 0, 0];
+    let a = BigInt::new([constants::U32_MAX, constants::U32_MAX, constants::U32_MAX, 0, 0, 0, 0, 0]);
+    let b = constants::U32_MAX;
+    let c = BigInt::new([constants::U32_MAX, constants::U32_MAX, 0, 0, 0, 0, 0, 0]);
+    let expected_product_limbs : [u32; 8] = [constants::U32_MAX - 1, 0, 1, 0, 0, 0, 0, 0];
     let product = a.sub_mul(0, b, c);
     constrain product.limbs == expected_product_limbs;
 }
@@ -619,7 +618,7 @@ fn test_sub_mul() {
 
 // msl
 fn test_msl_case1() {
-    let a = BigInt::new([u32_utils::U32_MAX, u32_utils::U32_MAX, u32_utils::U32_MAX, 0, 0, 0, 0, 0]);
+    let a = BigInt::new([constants::U32_MAX, constants::U32_MAX, constants::U32_MAX, 0, 0, 0, 0, 0]);
     let expected_msl_index = 2;
     let expected_msl : u32 = a.limbs[2];
     let expected_msl_minus_one = a.limbs[1];
@@ -630,7 +629,7 @@ fn test_msl_case1() {
 }
 
 fn test_msl_case2() {
-    let a = BigInt::new([u32_utils::U32_MAX, u32_utils::U32_MAX, u32_utils::U32_MAX, 0, 0, 0, 0, 1]);
+    let a = BigInt::new([constants::U32_MAX, constants::U32_MAX, constants::U32_MAX, 0, 0, 0, 0, 1]);
     let expected_msl_index = 7;
     let expected_msl : u32 = 1;
     let expected_msl_minus_one = 0;
@@ -693,7 +692,7 @@ fn test_msl() {
 fn test_div_rem_core_case1() {
     let a = BigInt::new([0, 0, 0, 0, 1, 0, 0, 0]);
     let b = BigInt::new([9, 9, 2, 0, 0, 0, 0, 0]);
-    let expected_product_limbs : [u32; 8] = [u32_utils::U32_MAX - 1, 0, 1, 0, 0, 0, 0, 0];
+    let expected_product_limbs : [u32; 8] = [constants::U32_MAX - 1, 0, 1, 0, 0, 0, 0, 0];
     let q = div_rem_core(a, b);
     constrain expected_product_limbs != q.limbs;
     // constrain q.limbs[0] > 3221225479;
