@@ -91,9 +91,9 @@ fn div_rem_core(mut a: BigInt, b: BigInt) -> BigInt {
             // Subtract (q_estimate << j) * b from a. This may overflow, in which case we will have to correct.
 
             // let mut borrow = sub_mul_digit_same_len(&mut a.data[j..], b, q0);
-            let mut sub_mul_result = a.sub_mul(j as u32, q_estimate, b);
-            a = BigInt::new(sub_mul_result.limbs);
-            let mut borrow = sub_mul_result.overflow;
+            let (sub_mul_result, sub_mul_overflow) = a.sub_mul(j as u32, q_estimate, b);
+            a = sub_mul_result;
+            let mut borrow = sub_mul_overflow;
             
             // This is necesary because of this bug https://github.com/noir-lang/noir/issues/579
             let mut a_limbs = a.limbs;
@@ -169,13 +169,9 @@ fn test_div_wide() {
 fn test_div_rem_core_case1() {
     let a = BigInt::new([0, 0, 0, 0, 1, 0, 0, 0]);
     let b = BigInt::new([9, 9, 2, 0, 0, 0, 0, 0]);
-    let expected_product_limbs : [u32; 8] = [constants::U32_MAX - 1, 0, 1, 0, 0, 0, 0, 0];
+    let expected_product_limbs : [u32; 8] = [3221225479, 2147483645, 0, 0, 0, 0, 0, 0];
     let q = div_rem_core(a, b);
-    constrain expected_product_limbs != q.limbs;
-    // constrain q.limbs[0] > 3221225479;
-    constrain q.limbs[1] == 2147483645;
-    // constrain q.limbs[2] < 221225479;
-    constrain q.limbs[2] == 0;
+    constrain expected_product_limbs == q.limbs;
 }
 
 fn test_div_rem_core() {

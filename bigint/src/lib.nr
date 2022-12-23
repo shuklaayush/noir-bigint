@@ -13,13 +13,6 @@ struct BigInt2 {
     limbs : [u32; constants::DOUBLE_LIMBS],
 }
 
-// TODO: This is a temporary solution that we are using because a struct inside of a tuple doesn't work 
-// https://github.com/noir-lang/noir/issues/492
-struct LimbsWithOverflow {
-    limbs : [u32; constants::NUM_LIMBS],
-    overflow: u32,
-}
-
 impl BigInt {
     /// Creation
 
@@ -243,7 +236,7 @@ impl BigInt {
     }
 
     // Returns self - (multiplicand * other).
-    fn sub_mul(self : Self, limb_shift : u32, multiplicand : u32, other : BigInt) -> LimbsWithOverflow {
+    fn sub_mul(self : Self, limb_shift : u32, multiplicand : u32, other : BigInt) -> (BigInt, u32) {
         let shifted = self.shift(limb_shift, true);
         let mut limbs : [u32; constants::NUM_LIMBS] = [0 as u32; constants::NUM_LIMBS];
         let mut borrow : u32 = 0;
@@ -260,11 +253,7 @@ impl BigInt {
             }
         }
         
-        // ToDo: This is a work around because structs in tuples don't work
-        LimbsWithOverflow {
-            limbs: result,
-            overflow: borrow,
-        }
+        (BigInt::new(result), borrow)
     }
 
     // Returns true iff this number is even.
@@ -472,8 +461,9 @@ fn test_sub_mul_case1() {
     let b = constants::U32_MAX;
     let c = BigInt::new([constants::U32_MAX, constants::U32_MAX, 0, 0, 0, 0, 0, 0]);
     let expected_product_limbs : [u32; 8] = [constants::U32_MAX - 1, 0, 1, 0, 0, 0, 0, 0];
-    let product = a.sub_mul(0, b, c);
+    let (product, overflow) = a.sub_mul(0, b, c);
     constrain product.limbs == expected_product_limbs;
+    constrain overflow == 0;
 }
 
 fn test_sub_mul_case2() {
@@ -481,9 +471,9 @@ fn test_sub_mul_case2() {
     let b = 2147483645;
     let c = BigInt::new([9, 9, 2, 0, 0, 0, 0, 0]);
     let expected_product_limbs : [u32; 8] = [0, 2147483675, 2147483670, 1, 0, 0, 0, 0];
-    let product = a.sub_mul(1, b, c);
+    let (product, overflow) = a.sub_mul(1, b, c);
     constrain product.limbs == expected_product_limbs;
-    constrain product.overflow == 0;
+    constrain overflow == 0;
 }
 
 fn test_sub_mul_case3() {
@@ -491,9 +481,9 @@ fn test_sub_mul_case3() {
     let b = 0;
     let c = BigInt::new([9, 9, 2, 0, 0, 0, 0, 0]);
     let expected_product_limbs : [u32; 8] = [0, 0, 0, 0, 1, 0, 0, 0];
-    let product = a.sub_mul(2, b, c);
+    let (product, overflow) = a.sub_mul(2, b, c);
     constrain product.limbs == expected_product_limbs;
-    constrain product.overflow == 0;
+    constrain overflow == 0;
 }
 
 fn test_sub_mul() {

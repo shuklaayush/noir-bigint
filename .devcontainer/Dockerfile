@@ -23,20 +23,9 @@ USER vscode
 RUN curl -f -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
 
 # Install noir
-RUN git clone https://github.com/noir-lang/noir.git ~/noir
-
-# https://docs.aztec.network/developers/noir#install-noir-from-source
-# utilizes the C++ backend's wasm executable instead of compiling from source
-# WORKDIR /home/vscode/noir/crates/nargo
-# RUN sed -i -e 's@aztec_backend = .*@azkkktec_backend = { optional = true, git = "https://github.com/noir-lang/aztec_backend", rev = "d91c69f2137777cec37f692f98d075ae10e7a584", default-features = false, features = [ "wasm-base", ] }@' Cargo.toml
-
-
-WORKDIR /home/vscode/noir/crates/nargo
-# RUN git checkout gd/short_circuit
-RUN cargo fetch --locked
-
-WORKDIR /usr/local/cargo/git/checkouts/barretenberg-6ce83dfea69613eb/804c7dc/barretenberg_wrapper
-RUN sed -i -e 's@    if cfg!(all(target_os = "macos", target_arch = "aarch64")) {@    if cfg!(all(target_arch = "aarch64")) {@' build.rs
-
-WORKDIR /home/vscode/noir/crates/nargo
-RUN LIBRARY_PATH=$LIBRARY_PATH:/usr/lib/llvm-11/lib/ cargo install --locked --path=.
+RUN mkdir -p $HOME/.nargo/bin
+RUN curl -o $HOME/.nargo/bin/nargo-aarch64-unknown-linux-gnu.tar.gz -L https://github.com/noir-lang/noir/releases/download/nightly/nargo-aarch64-unknown-linux-gnu.tar.gz
+RUN tar -xvf $HOME/.nargo/bin/nargo-aarch64-unknown-linux-gnu.tar.gz -C $HOME/.nargo/bin/
+RUN mkdir -p $HOME/.config/noir-lang
+RUN cp -r $HOME/.nargo/bin/noir-lang/* "$HOME/.config/noir-lang/"
+RUN echo 'export PATH=$PATH:$HOME/.nargo/bin' >> ~/.bashrc
