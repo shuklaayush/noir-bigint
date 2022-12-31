@@ -3,7 +3,6 @@ global LIMB_BITS : Field = 32;
 global LIMB_BYTES : Field = 4;
 global DOUBLE_LIMBS : Field = 16;
 
-
 global U96_POW_2_32 : u96 = 4294967296;
 global U96_POW_2_64 : u96 = 18446744073709551616;
 
