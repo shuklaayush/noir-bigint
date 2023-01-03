@@ -112,23 +112,6 @@ impl BigInt {
         (msl_index, msl_minus_two, msl_minus_one, msl)
     }
     
-    // Returns self ^ exponent.
-    // fn pow(self : Self, exponent : u32) -> Self {
-    //     if self.is_one() | exponent == 0 {
-    //         BigInt::one();
-    //     } else {
-    //         if self.is_zero() {
-    //             BigInt::zero();
-    //         } else {
-    //             
-    //         }
-    //     }
-    //     
-    // }
-    
-    // Returns (self ^ exponent) % modulus.
-    // fn pow_mod(self : Self, exponent : u32, modulus : Self)
-    
     fn add(self : Self, other : BigInt) -> (BigInt, u32) {
         let mut limbs : [u32; constants::NUM_LIMBS] = [0 as u32; constants::NUM_LIMBS];
         let mut carry : u32 = 0;
