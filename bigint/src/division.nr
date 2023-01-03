@@ -96,7 +96,7 @@ fn div_rem_core(mut a: BigInt, b: BigInt) -> BigInt {
             let mut borrow = sub_mul_overflow;
             
             // This is necesary because of this bug https://github.com/noir-lang/noir/issues/579
-            let mut a_limbs = a.limbs;
+            // let mut a_limbs = a.limbs;
 
             if borrow > 0 {
                 // q_estimate is too large. We need to add back one multiple of b.

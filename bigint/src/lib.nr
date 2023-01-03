@@ -270,7 +270,32 @@ impl BigInt {
         };
         result
     }
+
+    // Returns true iff this number >= other.
+    fn gte(self : Self, other : Self) -> bool {
+        let result = self.sub(other);
+        let borrow = result.1;
+        borrow == 0
+    }
+
+    // Returns true iff this number > other.
+    fn gt(self : Self, other : Self) -> bool {
+        let (difference, borrow) = self.sub(other);
+        let difference_is_zero = difference.is_zero();
+        (borrow == 0) & (difference_is_zero == false)
+    }
+
+    // Returns true iff this number <= other.
+    fn lte(self : Self, other : Self) -> bool {
+        other.gte(self)
+    }
+
+    // Returns true iff this number < other.
+    fn lt(self : Self, other : Self) -> bool {
+        other.gt(self)
+    }
 }
+
 
 // Tests
 fn run_tests() {
@@ -283,6 +308,7 @@ fn run_tests() {
     test_sub();
     test_sub_mul();
     test_msl();
+    test_cmp();
 }
 
 /// from_bytes_be
@@ -546,4 +572,30 @@ fn test_msl() {
     test_msl_case3();
     test_msl_case4();
     test_msl_case5();
+}
+
+// cmp
+fn test_cmp() {
+    let one = BigInt::one();
+    let zero = BigInt::zero();
+
+    constrain zero.gt(zero) == false;
+    constrain zero.gt(one) == false;
+    constrain one.gt(zero) == true;
+    constrain one.gt(one) == false;
+
+    constrain zero.gte(zero) == true;
+    constrain zero.gte(one) == false;
+    constrain one.gte(zero) == true;
+    constrain one.gte(one) == true;
+
+    constrain zero.lt(zero) == false;
+    constrain zero.lt(one) == true;
+    constrain one.lt(zero) == false;
+    constrain one.lt(one) == false;
+
+    constrain zero.lte(zero) == true;
+    constrain zero.lte(one) == true;
+    constrain one.lte(zero) == false;
+    constrain one.lte(one) == true;
 }
