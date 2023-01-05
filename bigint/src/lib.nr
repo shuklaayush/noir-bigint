@@ -71,6 +71,20 @@ impl BigInt {
         // constrain limbs[0] == 1;
         BigInt::new(limbs)
     }
+
+    // Creates and initializes a BigInt by selecting NUM_LIMBS consecutive limbs from an an array of size DOUBLE_LIMBS
+    fn from_double_limbs(double_limbs : [u32; constants::DOUBLE_LIMBS], offset : u32) -> Self {
+        constrain offset <= constants::NUM_LIMBS as u32;
+        let mut limbs = [0 as u32; constants::NUM_LIMBS];
+        for i in 0..constants::DOUBLE_LIMBS {
+            if i as u32 == offset {
+                for j in 0..constants::NUM_LIMBS {
+                    limbs[j] = double_limbs[i + j];
+                };
+            }
+        };
+        BigInt::new(limbs)
+    }
     
     /// Math
 
@@ -339,6 +353,26 @@ fn test_from_bytes_be_case2() {
 fn test_from_bytes_be() {
     test_from_bytes_be_case1();
     test_from_bytes_be_case2();
+}
+
+
+/// from_double_limbs
+fn test_from_double_limbs_case1() {
+    let double_limbs : [u32; constants::DOUBLE_LIMBS] = [0 as u32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
+    let x = BigInt::from_double_limbs(double_limbs, constants::NUM_LIMBS as u32);
+    constrain x.limbs == [9 as u32, 10, 11, 12, 13, 14, 15, 16, 17];
+}
+
+fn test_from_double_limbs_case2() {
+    let double_limbs : [u32; constants::DOUBLE_LIMBS] = [0 as u32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
+    let x = BigInt::from_double_limbs(double_limbs, 0);
+    constrain x.limbs == [0 as u32, 1, 2, 3, 4, 5, 6, 7, 8];
+    // TODO: Test offset bounds
+}
+
+fn test_from_double_limbs() {
+    test_from_double_limbs_case1();
+    test_from_double_limbs_case2();
 }
 
 
