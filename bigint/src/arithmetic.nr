@@ -2,9 +2,9 @@ use crate::constants;
 
 // returns sum = a + b + carry, and the new carry.
 fn add_limbs_with_carry(a: u32, b: u32, carry: u32) -> (u32, u32) {
-    let sum : u64 = a as u64 + b as u64 + carry as u64;
-    let new_carry : u32 = ((sum & constants::U64_UPPER_32_BITS) / constants::U64_POW_2_32) as u32;
-    ((sum & constants::U64_LOWER_32_BITS) as u32, new_carry)
+    let sum = a as u33 + b as u33 + carry as u33;
+    let new_carry = (sum >> (constants::LIMB_BITS as comptime u33)) as u32;
+    (sum as u32, new_carry)
 }
 
 // Returns diff = a - b - borrow, and the new borrow.
@@ -23,16 +23,16 @@ fn sub_limbs_with_borrow(a: u32, b: u32, borrow: u32) -> (u32, u32) {
 // Returns diff = a - (b * c) - borrow, and the new borrow.
 fn sub_mul_limbs_with_borrow(a: u32, b: u32, c: u32, borrow: u32) -> (u32, u32) {
     let diff_with_overflow : u64 = (constants::U64_UPPER_32_BITS as u64) + (a as u64) - (b as u64 * c as u64) - (borrow as u64);
-    let diff = diff_with_overflow & constants::U64_LOWER_32_BITS;
-    let new_borrow = ((constants::U64_UPPER_32_BITS - (diff_with_overflow & constants::U64_UPPER_32_BITS)) / constants::U64_POW_2_32) as u32;
-    ((diff & constants::U64_LOWER_32_BITS) as u32, new_borrow)
+    let diff = diff_with_overflow as u32;
+    let new_borrow = ((constants::U64_UPPER_32_BITS - (diff_with_overflow & constants::U64_UPPER_32_BITS)) >> (constants::LIMB_BITS as u64)) as u32;
+    (diff, new_borrow)
 }
 
 // returns a + (b * c) + carry, and the new carry.
 fn mul_limbs_with_carry(a: u32, b: u32, c: u32, carry: u32) -> (u32, u32) {
-    let calc_result : u64 = a as u64  + (b as u64 * c as u64) + carry as u64;
-    let new_carry : u32 = ((calc_result & constants::U64_UPPER_32_BITS) / constants::U64_POW_2_32) as u32;
-    ((calc_result & constants::U64_LOWER_32_BITS) as u32, new_carry)
+    let calc_result : u64 = a as u64 + (b as u64 * c as u64) + carry as u64;
+    let new_carry = (calc_result >> (constants::LIMB_BITS as comptime u64)) as u32;
+    (calc_result as u32, new_carry)
 }
 
 // Tests
