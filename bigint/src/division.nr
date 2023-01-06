@@ -32,7 +32,7 @@ fn div_wide(dividend_hi: u32, dividend_mid: u32, dividend_lo: u32, divisor_mid: 
 // /// Excerpted from https://docs.rs/num-bigint/latest/src/num_bigint/biguint/division.rs.html#210
 // /// An implementation of the base division algorithm.
 // /// Knuth, TAOCP vol 2 section 4.3.1, algorithm D, with an improvement from exercises 19-21.
-fn div_rem_core(mut a: BigInt, b: BigInt) -> BigInt {
+fn div_rem_core(mut a: BigInt, b: BigInt) -> (BigInt, BigInt) {
     // TODO: debug_assert!(a.data.len() >= b.len() && b.len() > 1);
     // TODO: debug_assert!(b.last().unwrap().leading_zeros() == 0);
 
@@ -72,15 +72,9 @@ fn div_rem_core(mut a: BigInt, b: BigInt) -> BigInt {
             let mut q_estimate = 0 as u32;
             let mut r = 0 as u64;
             if a0 < b0 {
-                // let result = division::div_wide(a0, a1, a2, b0, b1);
-                let a_trip = (a0 as u96 * constants::U96_POW_2_64) + (a1 as u96 * constants::U96_POW_2_32) + (a2 as u96);
-                let b_trip = (b0 as u96 * constants::U96_POW_2_32) + (b1 as u96);
-                let q_estimate_u96 = a_trip / b_trip;
-                q_estimate = q_estimate_u96 as u32;
-                r = (a_trip - (b_trip * q_estimate_u96)) as u64;
-                // (q as u32, r as u64)
-                // q_estimate = result.0;
-                // r = result.1;
+                let result = div_wide(a0, a1, a2, b0, b1);
+                q_estimate = result.0;
+                r = result.1;
             } else {
                 // TODO: debug_assert!(a0 == b0);
                 // Avoid overflowing q_estimate
@@ -122,8 +116,7 @@ fn div_rem_core(mut a: BigInt, b: BigInt) -> BigInt {
             }
         }
     };
-    // (BigInt::new(q_limbs), a)
-    BigInt::new(q_limbs)
+    (BigInt::new(q_limbs), a)
 }
 
 /// Tests
@@ -170,7 +163,7 @@ fn test_div_rem_core_case1() {
     let a = BigInt::new([0, 0, 0, 0, 1, 0, 0, 0]);
     let b = BigInt::new([9, 9, 2, 0, 0, 0, 0, 0]);
     let expected_product_limbs : [u32; 8] = [3221225479, 2147483645, 0, 0, 0, 0, 0, 0];
-    let q = div_rem_core(a, b);
+    let (q, r) = div_rem_core(a, b);
     constrain expected_product_limbs == q.limbs;
 }
 
