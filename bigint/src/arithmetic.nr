@@ -9,14 +9,9 @@ fn add_limbs_with_carry(a: u32, b: u32, carry: u32) -> (u32, u32) {
 
 // Returns diff = a - b - borrow, and the new borrow.
 fn sub_limbs_with_borrow(a: u32, b: u32, borrow: u32) -> (u32, u32) {
-    let diff_with_overflow : u64 = (constants::U64_POW_2_32 as u64) + (a as u64) - (b as u64) - (borrow as u64);
-    let diff = diff_with_overflow & constants::U64_LOWER_32_BITS;
-    if diff_with_overflow < constants::U64_POW_2_32 {
-        // Borrow was necessary
-        ((diff & constants::U64_LOWER_32_BITS) as u32, 1 as u32)
-    } else {
-        ((diff & constants::U64_LOWER_32_BITS) as u32, 0 as u32)
-    }
+    let diff_with_overflow = (1 << constants::LIMB_BITS as comptime u33) + a as u33 - b as u33 - borrow as u33;
+    let new_borrow = 1 - (diff_with_overflow >> (constants::LIMB_BITS as comptime u33)) as u32;
+    (diff_with_overflow as u32, new_borrow)
 }
 
 // TODO: Tests for max b and 0 b
