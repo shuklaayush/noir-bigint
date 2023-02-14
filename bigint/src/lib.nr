@@ -363,25 +363,20 @@ fn test_from_bytes_be() {
 }
 
 
-/// from_double_limbs
+#[test]
 fn test_from_double_limbs_case1() {
-    let double_limbs : [u32; constants::DOUBLE_LIMBS] = [0 as u32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
+    let double_limbs : [u32; constants::DOUBLE_LIMBS] = [0 as u32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
     let x = BigInt::from_double_limbs(double_limbs, constants::NUM_LIMBS as u32);
-    constrain x.limbs == [9 as u32, 10, 11, 12, 13, 14, 15, 16, 17];
+    constrain x.limbs == [8 as u32, 9, 10, 11, 12, 13, 14, 15];
 }
 
+#[test]
 fn test_from_double_limbs_case2() {
-    let double_limbs : [u32; constants::DOUBLE_LIMBS] = [0 as u32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
+    let double_limbs : [u32; constants::DOUBLE_LIMBS] = [0 as u32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
     let x = BigInt::from_double_limbs(double_limbs, 0);
-    constrain x.limbs == [0 as u32, 1, 2, 3, 4, 5, 6, 7, 8];
+    constrain x.limbs == [0 as u32, 1, 2, 3, 4, 5, 6, 7];
     // TODO: Test offset bounds
 }
-
-fn test_from_double_limbs() {
-    test_from_double_limbs_case1();
-    test_from_double_limbs_case2();
-}
-
 
 // is_zero, is_one
 fn test_is_zero_case1() {
