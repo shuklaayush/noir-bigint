@@ -88,6 +88,22 @@ impl BigInt {
     
     /// Math
 
+    // Returns last non-zero limb, its index as tuple (msl_index, msl).
+    // Returns (0, 0) if self == BigInt::zero().
+    fn most_significant_limb(self : Self) -> (u32, u32) {
+        let mut msl_index = 0 as u32;
+        let mut msl = 0 as u32;
+        for i in 0..(constants::NUM_LIMBS) {
+            let j = constants::NUM_LIMBS - i - 1;
+            if (self.limbs[j] > 0) & (msl == 0) {
+                msl_index = j as u32;
+                msl = self.limbs[j];
+            }
+        };
+        (msl_index, msl)
+    }
+
+
     // Returns last non-zero limb, its index, and the limb before it as tuple (msl_index, msl_minus_one, msl).
     // Returns (0, 0, 0) if most_significant_limb index < 1.
     fn two_most_significant_limbs(self : Self) -> (u32, u32, u32) {
@@ -175,6 +191,7 @@ impl BigInt {
         (BigInt::new(limbs), borrow)
     }
     
+    // 
     fn shift(self : Self, shift : u32, left : bool) -> BigInt {
         constrain shift < 8;
         let mut limbs = self.limbs;
@@ -224,6 +241,12 @@ impl BigInt {
                     if shift == 7 {
                         limbs[i + 7] = self.limbs[i];
                     }
+                }
+            } else {
+                if left == true {
+                    limbs[i] = 0;
+                } else {
+                    limbs[constants::NUM_LIMBS - i - 1] = 0;
                 }
             }
         }
@@ -643,4 +666,36 @@ fn test_cmp() {
     constrain x4.gt(y4) == false;
     constrain x4.gte(y4) == true;
     constrain x4.eq(y4) == true;
+}
+
+#[test]
+fn test_shift() {
+    let x = BigInt::new([0 as u32, 1, 0, 0, 1, 0, 0, 0]);
+
+    let left_shift_0 = x.shift(0, true);
+    constrain left_shift_0.limbs == [0, 1, 0, 0, 1, 0, 0, 0];
+    let left_shift_1 = x.shift(1, true);
+    constrain left_shift_1.limbs == [1, 0, 0, 1, 0, 0, 0, 0];
+    let left_shift_2 = x.shift(2, true);
+    constrain left_shift_2.limbs == [0, 0, 1, 0, 0, 0, 0, 0];
+    let left_shift_3 = x.shift(3, true);
+    constrain left_shift_3.limbs == [0, 1, 0, 0, 0, 0, 0, 0];
+    let left_shift_4 = x.shift(4, true);
+    constrain left_shift_4.limbs == [1, 0, 0, 0, 0, 0, 0, 0];
+    let left_shift_7 = x.shift(7, true);
+    constrain left_shift_7.limbs == [0, 0, 0, 0, 0, 0, 0, 0];
+
+    let y = BigInt::new([7 as u32, 0, 0, 0, 0, 3, 0, 0]);
+    let right_shift_0 = y.shift(0, false);
+    constrain right_shift_0.limbs == [7, 0, 0, 0, 0, 3, 0, 0];
+    let right_shift_1 = y.shift(1, false);
+    constrain right_shift_1.limbs == [0, 7, 0, 0, 0, 0, 3, 0];
+    let right_shift_2 = y.shift(2, false);
+    constrain right_shift_2.limbs == [0, 0, 7, 0, 0, 0, 0, 3];
+    let right_shift_3 = y.shift(3, false);
+    constrain right_shift_3.limbs == [0, 0, 0, 7, 0, 0, 0, 0];
+    let right_shift_4 = y.shift(4, false);
+    constrain right_shift_4.limbs == [0, 0, 0, 0, 7, 0, 0, 0];
+    let right_shift_7 = y.shift(7, false);
+    constrain right_shift_7.limbs == [0, 0, 0, 0, 0, 0, 0, 7];
 }
