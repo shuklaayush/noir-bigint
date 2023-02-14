@@ -1,11 +1,11 @@
+use dep::std;
 use crate::constants;
 use crate::BigInt;
 
-// TODO: Blocked by https://github.com/noir-lang/noir/issues/580
-// fn to_triple_limb(hi : u32, mid : u32, lo : u32) -> u96 {
-//     // (hi as u96 * constants::U96_POW_2_64) | (mid as u96 * constants::U96_POW_2_32) | (lo as u96)
-//     (hi as u96 * constants::U96_POW_2_64) + (mid as u96 * constants::U96_POW_2_32) + (lo as u96)
-// }
+fn to_triple_limb(hi : u32, mid : u32, lo : u32) -> u96 {
+    // (hi as u96 * constants::U96_POW_2_64) | (mid as u96 * constants::U96_POW_2_32) | (lo as u96)
+    (hi as u96 * constants::U96_POW_2_64) + (mid as u96 * constants::U96_POW_2_32) + (lo as u96)
+}
 
 /// Divide a three limb numerator by a two limb divisor, returns quotient and remainder:
 ///
@@ -13,29 +13,17 @@ use crate::BigInt;
 /// This is _not_ true for an arbitrary numerator/denominator.
 fn div_wide(dividend_hi: u32, dividend_mid: u32, dividend_lo: u32, divisor_mid: u32, divisor_lo: u32) -> (u32, u64) {
     // TODO: debug_assert!(hi < divisor);
-    let dividend = (dividend_hi as u96 * constants::U96_POW_2_64) + (dividend_mid as u96 * constants::U96_POW_2_32) + (dividend_lo as u96);
-    let divisor = (divisor_mid as u96 * constants::U96_POW_2_32) + (divisor_lo as u96);
+    let dividend = to_triple_limb(dividend_hi, dividend_mid, dividend_lo);
+    let divisor = to_triple_limb(0, divisor_mid, divisor_lo);
     let q = dividend / divisor;
     let r = dividend - (divisor * q);
     (q as u32, r as u64)
 }
 
-/// For small divisors, we can divide without promoting to `DoubleBigDigit` by
-/// using half-size pieces of digit, like long-division.
-// fn div_half(rem: u32, digit: u32, divisor: u32) -> (u32, u32) {
-//     // TODO: debug_assert!(rem < divisor && divisor <= HALF);
-//     let (hi, rem) = ((rem << HALF_BITS) | (digit >> HALF_BITS)).div_rem(&divisor);
-//     let (lo, rem) = ((rem << HALF_BITS) | (digit & HALF)).div_rem(&divisor);
-//     ((hi << HALF_BITS) | lo, rem)
-// }
-
 // /// Excerpted from https://docs.rs/num-bigint/latest/src/num_bigint/biguint/division.rs.html#210
 // /// An implementation of the base division algorithm.
 // /// Knuth, TAOCP vol 2 section 4.3.1, algorithm D, with an improvement from exercises 19-21.
 fn div_rem_core(mut a: BigInt, b: BigInt) -> (BigInt, BigInt) {
-    // TODO: debug_assert!(a.data.len() >= b.len() && b.len() > 1);
-    // TODO: debug_assert!(b.last().unwrap().leading_zeros() == 0);
-
     // The algorithm works by incrementally calculating "guesses", q0, for the next digit of the
     // quotient. Once we have any number q0 such that (q0 << j) * b <= a, we can set
     //
@@ -55,7 +43,7 @@ fn div_rem_core(mut a: BigInt, b: BigInt) -> (BigInt, BigInt) {
 
     // a0 stores an additional extra most significant digit of the dividend, not stored in a.
     let mut a0 = 0 as u32;
-    let (mut a_msl_index, mut a2, mut a1) = a.two_most_significant_limbs();
+    let (a_msl_index, mut a2, mut a1) = a.two_most_significant_limbs();
 
     // [b1, b0] are the two most significant digits of the divisor. They never change.
     let (b_msl_index, b1, b0) = b.two_most_significant_limbs();
@@ -66,7 +54,6 @@ fn div_rem_core(mut a: BigInt, b: BigInt) -> (BigInt, BigInt) {
     for i in 0..constants::NUM_LIMBS {
         let j = constants::NUM_LIMBS - i - 1;
         if j as u32 < q_len {
-            // TODO: debug_assert!(a.data.len() == b.len() + j);
             // The first q_estimate is [a2,a1,a0] / [b1,b0]. It will never be too small, it may be too large
             // by at most 1.
             let mut q_estimate = 0 as u32;
@@ -76,21 +63,17 @@ fn div_rem_core(mut a: BigInt, b: BigInt) -> (BigInt, BigInt) {
                 q_estimate = result.0;
                 r = result.1;
             } else {
-                // TODO: debug_assert!(a0 == b0);
-                // Avoid overflowing q_estimate
-                // [a1,a0] = b0 * (1<<BITS - 1) + (a0 + a1)
-                // (big_digit::MAX, a0 as DoubleBigDigit + a1 as DoubleBigDigit)
+                // Prefix with 0 to avoid overflowing q_estimate
+                let result = div_wide(0, a0, a1, b0, b1);
+                q_estimate = result.0;
+                r = result.1;
             };
             // q_estimate is now either the correct quotient limb, 1 too large.
             // Subtract (q_estimate << j) * b from a. This may overflow, in which case we will have to correct.
 
-            // let mut borrow = sub_mul_digit_same_len(&mut a.data[j..], b, q0);
             let (sub_mul_result, sub_mul_overflow) = a.sub_mul(j as u32, q_estimate, b);
             a = sub_mul_result;
             let mut borrow = sub_mul_overflow;
-            
-            // This is necesary because of this bug https://github.com/noir-lang/noir/issues/579
-            // let mut a_limbs = a.limbs;
 
             if borrow > 0 {
                 // q_estimate is too large. We need to add back one multiple of b.
@@ -99,17 +82,96 @@ fn div_rem_core(mut a: BigInt, b: BigInt) -> (BigInt, BigInt) {
                 a = sum;
                 borrow = borrow - sum_overflow;
             }
-            // a = BigInt::new(a_limbs);
-
-            // The top digit of a, stored in a0, has now been zeroed.
-            // TODO: debug_assert!(borrow == a0);
 
             q_limbs[j] = q_estimate;
 
             // Don't do this on the last iteration when the quotient is fully formed
             if j != 0 {
-                let (a_msl_index_update, a2_update, a1_update, a0_update) = a.three_most_significant_limbs();
-                a_msl_index = a_msl_index_update;
+                let (a_msl_index_update, mut a2_update, mut a1_update, mut a0_update) = a.three_most_significant_limbs();
+                // In the case where the most significant limb index is not >= 2 we should just use the first
+                // three limbs of the bigint
+                if (a_msl_index_update == 0) {
+                    a2_update = a.limbs[0];
+                    a1_update = a.limbs[1];
+                    a0_update = a.limbs[2];
+                }
+                a0 = a0_update;
+                a1 = a1_update;
+                a2 = a2_update;
+            }
+        }
+    };
+    (BigInt::new(q_limbs), a)
+}
+
+fn div_rem(a: BigInt, b: BigInt) -> (BigInt, BigInt) {
+    let divisor_is_zero = b.is_zero();
+    constrain divisor_is_zero == false;
+
+    let dividend_is_zero = a.is_zero();
+    if dividend_is_zero {
+        (BigInt::zero(), BigInt::zero())
+    } else {
+        // if a < b return (0, a)
+        // if a == b return (1, 0)
+        
+    }
+
+
+    // a0 stores an additional extra most significant digit of the dividend, not stored in a.
+    let mut a0 = 0 as u32;
+    let (a_msl_index, mut a2, mut a1) = a.two_most_significant_limbs();
+
+    // [b1, b0] are the two most significant digits of the divisor. They never change.
+    let (b_msl_index, b1, b0) = b.two_most_significant_limbs();
+
+    let q_len = a_msl_index - b_msl_index + 1;
+    let mut q_limbs = [0 as u32; constants::NUM_LIMBS];
+    
+    for i in 0..constants::NUM_LIMBS {
+        let j = constants::NUM_LIMBS - i - 1;
+        if j as u32 < q_len {
+            // The first q_estimate is [a2,a1,a0] / [b1,b0]. It will never be too small, it may be too large
+            // by at most 1.
+            let mut q_estimate = 0 as u32;
+            let mut r = 0 as u64;
+            if a0 < b0 {
+                let result = div_wide(a0, a1, a2, b0, b1);
+                q_estimate = result.0;
+                r = result.1;
+            } else {
+                // Prefix with 0 to avoid overflowing q_estimate
+                let result = div_wide(0, a0, a1, b0, b1);
+                q_estimate = result.0;
+                r = result.1;
+            };
+            // q_estimate is now either the correct quotient limb, 1 too large.
+            // Subtract (q_estimate << j) * b from a. This may overflow, in which case we will have to correct.
+
+            let (sub_mul_result, sub_mul_overflow) = a.sub_mul(j as u32, q_estimate, b);
+            a = sub_mul_result;
+            let mut borrow = sub_mul_overflow;
+
+            if borrow > 0 {
+                // q_estimate is too large. We need to add back one multiple of b.
+                q_estimate = q_estimate - 1;
+                let (sum, sum_overflow) = a.add(b);
+                a = sum;
+                borrow = borrow - sum_overflow;
+            }
+
+            q_limbs[j] = q_estimate;
+
+            // Don't do this on the last iteration when the quotient is fully formed
+            if j != 0 {
+                let (a_msl_index_update, mut a2_update, mut a1_update, mut a0_update) = a.three_most_significant_limbs();
+                // In the case where the most significant limb index is not >= 2 we should just use the first
+                // three limbs of the bigint
+                if (a_msl_index_update == 0) {
+                    a2_update = a.limbs[0];
+                    a1_update = a.limbs[1];
+                    a0_update = a.limbs[2];
+                }
                 a0 = a0_update;
                 a1 = a1_update;
                 a2 = a2_update;
@@ -159,12 +221,26 @@ fn test_div_wide() {
 }
 
 // div_rem_core
+#[test]
 fn test_div_rem_core_case1() {
     let a = BigInt::new([0, 0, 0, 0, 1, 0, 0, 0]);
     let b = BigInt::new([9, 9, 2, 0, 0, 0, 0, 0]);
     let expected_product_limbs : [u32; 8] = [3221225479, 2147483645, 0, 0, 0, 0, 0, 0];
+    let expected_remainder : [u32; 8] = [1073741761, 3221225429, 1, 0, 0, 0, 0, 0];
     let (q, r) = div_rem_core(a, b);
     constrain expected_product_limbs == q.limbs;
+    constrain expected_remainder == r.limbs;
+}
+
+#[test]
+fn test_div_rem_core_case2() {
+    let a = BigInt::new([75, 1, 1, 1, 0, 0, 0, 0]);
+    let b = BigInt::new([0, 1, 0, 0, 0, 0, 0, 0]);
+    let expected_product_limbs : [u32; 8] = [1, 1, 1, 0, 0, 0, 0, 0];
+    let expected_remainder : [u32; 8] = [75, 0, 0, 0, 0, 0, 0, 0];
+    let (q, r) = div_rem_core(a, b);
+    constrain expected_product_limbs == q.limbs;
+    constrain expected_remainder == r.limbs;
 }
 
 fn test_div_rem_core() {

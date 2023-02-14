@@ -89,7 +89,7 @@ impl BigInt {
     /// Math
 
     // Returns last non-zero limb, its index, and the limb before it as tuple (msl_index, msl_minus_one, msl).
-    // Fails if most_significant_limb index < 1.
+    // Returns (0, 0, 0) if most_significant_limb index < 1.
     fn two_most_significant_limbs(self : Self) -> (u32, u32, u32) {
         let mut msl_index = 0 as u32;
         let mut msl = 0 as u32;
@@ -102,12 +102,11 @@ impl BigInt {
                 msl_minus_one = self.limbs[j - 1];
             }
         };
-        constrain msl_index >= 1;
         (msl_index, msl_minus_one, msl)
     }
 
     // Returns last non-zero limb, its index, and the 2 limbs before it as tuple (msl_index, msl_minus_two, msl_minus_one, msl).
-    // Fails if most_significant_limb index < 2.
+    // Returns (0, 0, 0, 0) if most_significant_limb index < 2.
     fn three_most_significant_limbs(self : Self) -> (u32, u32, u32, u32) {
         let mut msl_index = 0 as u32;
         let mut msl = 0 as u32;
@@ -122,7 +121,6 @@ impl BigInt {
                 msl_minus_two = self.limbs[j - 2];
             }
         };
-        constrain msl_index >= 2;
         (msl_index, msl_minus_two, msl_minus_one, msl)
     }
     
@@ -248,7 +246,7 @@ impl BigInt {
             if i as u32 < limb_shift {
                 result[i] = self.limbs[i];
             }
-        }
+        };
         
         (BigInt::new(result), borrow)
     }
