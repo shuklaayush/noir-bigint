@@ -188,11 +188,9 @@ fn div_rem(a: BigInt, mut b: BigInt) -> (BigInt, BigInt) {
 }
 
 /// Tests
-fn run_tests() {
-    test_div_wide();
-}
 
 // div_wide
+#[test]
 fn test_div_wide_case1() {
     let dividend_hi = 1;
     let dividend_mid = 0;
@@ -206,6 +204,7 @@ fn test_div_wide_case1() {
     constrain expected_r == r;
 }
 
+#[test]
 fn test_div_wide_case2() {
     let dividend_hi = 1;
     let dividend_mid = 2147483670;
@@ -219,11 +218,6 @@ fn test_div_wide_case2() {
     constrain expected_r == r;
 }
 
-
-fn test_div_wide() {
-    test_div_wide_case1();
-    test_div_wide_case2();
-}
 
 // div_rem_core
 #[test]

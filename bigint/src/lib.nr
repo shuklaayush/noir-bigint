@@ -1,4 +1,3 @@
-use dep::std;
 mod constants;
 mod arithmetic;
 mod division;
@@ -46,7 +45,7 @@ impl BigInt {
             constants::U32_POW_2_24,
         ];
 
-        let bytes_len = std::array::len(bytes) as u32;
+        let bytes_len = bytes.len() as u32;
         
         // TODO: Should we allow this?
         constrain bytes_len <= MAX_BYTES as u32;
@@ -342,20 +341,8 @@ impl BigInt {
 
 
 // Tests
-fn run_tests() {
-    arithmetic::run_tests();
-    division::run_tests();
-    test_from_bytes_be();
-    test_is_one_zero();
-    test_add();
-    test_mul();
-    test_sub();
-    test_sub_mul();
-    test_msl();
-    test_cmp();
-}
-
 /// from_bytes_be
+#[test]
 fn test_from_bytes_be_case1() {
     // TODO: this line causes a weird bug that I think is related to MAX_BYTES existing in a diff function
     // let MAX_BYTES : comptime Field = constants::NUM_LIMBS * constants::LIMB_BYTES;
@@ -367,6 +354,7 @@ fn test_from_bytes_be_case1() {
     };
 }
 
+#[test]
 fn test_from_bytes_be_case2() {
     let bytes = [
         0 as u8, 0, 0, 0,
@@ -379,12 +367,6 @@ fn test_from_bytes_be_case2() {
         constrain bint.limbs[i] == 0;
     };
 }
-
-fn test_from_bytes_be() {
-    test_from_bytes_be_case1();
-    test_from_bytes_be_case2();
-}
-
 
 #[test]
 fn test_from_double_limbs_case1() {
@@ -402,6 +384,7 @@ fn test_from_double_limbs_case2() {
 }
 
 // is_zero, is_one
+#[test]
 fn test_is_zero_case1() {
     let a = BigInt::new([0 as u32; constants::NUM_LIMBS]);
     let b = BigInt::new([1 as u32, 0, 0, 0, 0, 0, 0, 0]);
@@ -411,6 +394,7 @@ fn test_is_zero_case1() {
     constrain zero.is_zero() == true;
 }
 
+#[test]
 fn test_is_one_case1() {
     let a = BigInt::new([0 as u32; constants::NUM_LIMBS]);
     let b = BigInt::new([1 as u32, 0, 0, 0, 0, 0, 0, 0]);
@@ -420,13 +404,8 @@ fn test_is_one_case1() {
     constrain one.is_one() == true;
 }
 
-fn test_is_one_zero() {
-    test_is_zero_case1();
-    test_is_one_case1();
-}
-
-
 // add
+#[test]
 fn test_add_case1() {
     let a = BigInt::new([1 as u32; constants::NUM_LIMBS]);
     let b = BigInt::new([2 as u32; constants::NUM_LIMBS]);
@@ -437,6 +416,7 @@ fn test_add_case1() {
     constrain overflow == expected_overflow;
 }
 
+#[test]
 fn test_add_case2() {
     let a = BigInt::new([constants::U32_MAX as u32, constants::U32_MAX as u32, constants::U32_MAX as u32, 0, 0, 0, 0, 0]);
     let b = BigInt::new([1 as u32, 0, 0, 0, 0, 0, 0, 0]);
@@ -447,6 +427,7 @@ fn test_add_case2() {
     constrain overflow == expected_overflow;
 }
 
+#[test]
 fn test_add_case3() {
     let a = BigInt::new([constants::U32_MAX as u32; constants::NUM_LIMBS]);
     let b = BigInt::new([1 as u32, 0, 0, 0, 0, 0, 0, 0]);
@@ -457,14 +438,8 @@ fn test_add_case3() {
     constrain overflow == expected_overflow;
 }
 
-fn test_add() {
-    test_add_case1();
-    test_add_case2();
-    test_add_case3();
-}
-
-
 // sub
+#[test]
 fn test_sub_case1() {
     let a = BigInt::new([3 as u32; constants::NUM_LIMBS]);
     let b = BigInt::new([1 as u32; constants::NUM_LIMBS]);
@@ -475,6 +450,7 @@ fn test_sub_case1() {
     constrain overflow == expected_overflow;
 }
 
+#[test]
 fn test_sub_case2() {
     let a = BigInt::new([4 as u32, 2, 0, 0, 0, 0, 0, 0]);
     let b = BigInt::new([5 as u32, 0, 0, 0, 0, 0, 0, 0]);
@@ -485,6 +461,7 @@ fn test_sub_case2() {
     constrain overflow == expected_overflow;
 }
 
+#[test]
 fn test_sub_case3() {
     let a = BigInt::new([4 as u32, 0, 0, 0, 0, 0, 0, 0]);
     let b = BigInt::new([5 as u32, 0, 0, 0, 0, 0, 0, 0]);
@@ -495,13 +472,8 @@ fn test_sub_case3() {
     constrain overflow == expected_overflow;
 }
 
-fn test_sub() {
-    test_sub_case1();
-    test_sub_case2();
-    test_sub_case3();
-}
-
 // mul
+#[test]
 fn test_mul_case1() {
     let a = BigInt::new([5 as u32, 0, 0, 0, 0, 0, 0, 0]);
     let b = BigInt::new([5 as u32, 0, 0, 0, 0, 0, 0, 0]);
@@ -510,6 +482,7 @@ fn test_mul_case1() {
     constrain product.limbs == expected_product_limbs;
 }
 
+#[test]
 fn test_mul_case2() {
     let a = BigInt::new([constants::U32_MAX; constants::NUM_LIMBS]);
     let b = BigInt::new([constants::U32_MAX; constants::NUM_LIMBS]);
@@ -518,13 +491,8 @@ fn test_mul_case2() {
     constrain product.limbs == expected_product_limbs;
 }
 
-fn test_mul() {
-    test_mul_case1();
-    test_mul_case2();
-}
-
-
 // sub_mul
+#[test]
 fn test_sub_mul_case1() {
     let a = BigInt::new([constants::U32_MAX, constants::U32_MAX, constants::U32_MAX, 0, 0, 0, 0, 0]);
     let b = constants::U32_MAX;
@@ -535,6 +503,7 @@ fn test_sub_mul_case1() {
     constrain overflow == 0;
 }
 
+#[test]
 fn test_sub_mul_case2() {
     let a = BigInt::new([0, 0, 0, 0, 1, 0, 0, 0]);
     let b = 2147483645;
@@ -545,6 +514,7 @@ fn test_sub_mul_case2() {
     constrain overflow == 0;
 }
 
+#[test]
 fn test_sub_mul_case3() {
     let a = BigInt::new([0, 0, 0, 0, 1, 0, 0, 0]);
     let b = 0;
@@ -555,14 +525,8 @@ fn test_sub_mul_case3() {
     constrain overflow == 0;
 }
 
-fn test_sub_mul() {
-    test_sub_mul_case1();
-    test_sub_mul_case2();
-    test_sub_mul_case3();
-}
-
-
 // msl
+#[test]
 fn test_msl_case1() {
     let a = BigInt::new([constants::U32_MAX, constants::U32_MAX, constants::U32_MAX, 0, 0, 0, 0, 0]);
     let expected_msl_index = 2;
@@ -574,6 +538,7 @@ fn test_msl_case1() {
     constrain expected_msl_minus_one == msl_minus_one;
 }
 
+#[test]
 fn test_msl_case2() {
     let a = BigInt::new([constants::U32_MAX, constants::U32_MAX, constants::U32_MAX, 0, 0, 0, 0, 1]);
     let expected_msl_index = 7;
@@ -585,6 +550,7 @@ fn test_msl_case2() {
     constrain expected_msl_minus_one == msl_minus_one;
 }
 
+#[test]
 fn test_msl_case3() {
     let a = BigInt::new([0, 0, 100, 0, 1, 0, 0, 0]);
     let expected_msl_index = 4;
@@ -598,6 +564,7 @@ fn test_msl_case3() {
     constrain expected_msl_minus_two == msl_minus_two;
 }
 
+#[test]
 fn test_msl_case4() {
     let a = BigInt::new([1, 2, 3, 0, 0, 0, 0, 0]);
     let expected_msl_index = 2;
@@ -611,6 +578,7 @@ fn test_msl_case4() {
     constrain expected_msl_minus_two == msl_minus_two;
 }
 
+#[test]
 fn test_msl_case5() {
     let a = BigInt::new([9, 9, 2, 0, 0, 0, 0, 0]);
     let expected_msl_index = 2;
@@ -624,16 +592,8 @@ fn test_msl_case5() {
     constrain expected_msl_minus_two == msl_minus_two;
 }
 
-
-fn test_msl() {
-    test_msl_case1();
-    test_msl_case2();
-    test_msl_case3();
-    test_msl_case4();
-    test_msl_case5();
-}
-
 // cmp
+#[test]
 fn test_cmp() {
     let x1 = BigInt::new([0 as u32, 0, 0, 0, 1, 0, 0, 0]);
     let y1 = BigInt::new([0 as u32, 0, 0, 0, 0, 0, 0, 1]);
