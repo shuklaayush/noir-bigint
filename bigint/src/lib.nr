@@ -7,7 +7,6 @@ struct BigInt {
     limbs : [u32; constants::NUM_LIMBS],
 }
 
-// TODO: impl
 struct BigInt2 {
     limbs : [u32; constants::DOUBLE_LIMBS],
 }
@@ -47,7 +46,6 @@ impl BigInt {
 
         let bytes_len = bytes.len() as u32;
         
-        // TODO: Should we allow this?
         constrain bytes_len <= MAX_BYTES as u32;
 
         let mut limbs = [0 as u32; constants::NUM_LIMBS];
@@ -68,20 +66,6 @@ impl BigInt {
             }
         };
         // constrain limbs[0] == 1;
-        BigInt::new(limbs)
-    }
-
-    // Creates and initializes a BigInt by selecting NUM_LIMBS consecutive limbs from an an array of size DOUBLE_LIMBS
-    fn from_double_limbs(double_limbs : [u32; constants::DOUBLE_LIMBS], offset : u32) -> Self {
-        constrain offset <= constants::NUM_LIMBS as u32;
-        let mut limbs = [0 as u32; constants::NUM_LIMBS];
-        for i in 0..constants::DOUBLE_LIMBS {
-            if i as u32 == offset {
-                for j in 0..constants::NUM_LIMBS {
-                    limbs[j] = double_limbs[i + j];
-                };
-            }
-        };
         BigInt::new(limbs)
     }
     
@@ -190,7 +174,6 @@ impl BigInt {
         (BigInt::new(limbs), borrow)
     }
     
-    // 
     fn shift(self : Self, shift : u32, left : bool) -> BigInt {
         constrain shift < 8;
         let mut limbs = self.limbs;
@@ -344,8 +327,6 @@ impl BigInt {
 /// from_bytes_be
 #[test]
 fn test_from_bytes_be_case1() {
-    // TODO: this line causes a weird bug that I think is related to MAX_BYTES existing in a diff function
-    // let MAX_BYTES : comptime Field = constants::NUM_LIMBS * constants::LIMB_BYTES;
     let bytes = [1 as u8, 0, 1];
     let bint = BigInt::from_bytes_le(bytes);
     constrain bint.limbs[0] == 1 + 65536;
@@ -366,21 +347,6 @@ fn test_from_bytes_be_case2() {
     for i in 2..constants::NUM_LIMBS {
         constrain bint.limbs[i] == 0;
     };
-}
-
-#[test]
-fn test_from_double_limbs_case1() {
-    let double_limbs : [u32; constants::DOUBLE_LIMBS] = [0 as u32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-    let x = BigInt::from_double_limbs(double_limbs, constants::NUM_LIMBS as u32);
-    constrain x.limbs == [8 as u32, 9, 10, 11, 12, 13, 14, 15];
-}
-
-#[test]
-fn test_from_double_limbs_case2() {
-    let double_limbs : [u32; constants::DOUBLE_LIMBS] = [0 as u32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-    let x = BigInt::from_double_limbs(double_limbs, 0);
-    constrain x.limbs == [0 as u32, 1, 2, 3, 4, 5, 6, 7];
-    // TODO: Test offset bounds
 }
 
 // is_zero, is_one
