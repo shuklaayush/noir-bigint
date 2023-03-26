@@ -324,9 +324,9 @@ impl BigInt {
 
 
 // Tests
-/// from_bytes_be
+/// from_bytes_le
 #[test]
-fn test_from_bytes_be_case1() {
+fn test_from_bytes_le_case1() {
     let bytes = [1 as u8, 0, 1];
     let bint = BigInt::from_bytes_le(bytes);
     constrain bint.limbs[0] == 1 + 65536;
@@ -336,7 +336,7 @@ fn test_from_bytes_be_case1() {
 }
 
 #[test]
-fn test_from_bytes_be_case2() {
+fn test_from_bytes_le_case2() {
     let bytes = [
         0 as u8, 0, 0, 0,
         0, 0, 0, 7,
