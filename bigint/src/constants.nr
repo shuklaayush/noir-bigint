@@ -1,5 +1,5 @@
 global NUM_LIMBS : Field = 8;
-global LIMB_BITS : Field = 32;
+global LIMB_BITS : u64 = 32;
 global LIMB_BYTES : Field = 4;
 global DOUBLE_LIMBS : Field = 16;
 
