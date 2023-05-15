@@ -129,7 +129,7 @@ fn div_rem_core(mut a: BigInt, b: BigInt) -> (BigInt, BigInt) {
 
 fn div_rem(a: BigInt, mut b: BigInt) -> (BigInt, BigInt) {
     let divisor_is_zero = b.is_zero();
-    constrain divisor_is_zero == false;
+    assert(divisor_is_zero == false);
     let mut result : (BigInt, BigInt) = (BigInt::zero(), BigInt::zero());
     let mut result_set : bool = false;
 
@@ -200,8 +200,8 @@ fn test_div_wide_case1() {
     let expected_q = 858993453;
     let expected_r = 13743896209;
     let (q, r) = div_wide(dividend_hi, dividend_mid, dividend_lo, divisor_mid, divisor_lo);
-    constrain expected_q == q;
-    constrain expected_r == r;
+    assert(expected_q == q);
+    assert(expected_r == r);
 }
 
 #[test]
@@ -214,8 +214,8 @@ fn test_div_wide_case2() {
     let expected_q = 3221225479;
     let expected_r = 7516192732;
     let (q, r) = div_wide(dividend_hi, dividend_mid, dividend_lo, divisor_mid, divisor_lo);
-    constrain expected_q == q;
-    constrain expected_r == r;
+    assert(expected_q == q);
+    assert(expected_r == r);
 }
 
 
@@ -231,8 +231,8 @@ fn test_div_rem_case1() {
     let expected_product_limbs : [u32; 8] = [3221225479, 2147483645, 0, 0, 0, 0, 0, 0];
     let expected_remainder : [u32; 8] = [1073741761, 3221225429, 1, 0, 0, 0, 0, 0];
     let (q, r) = div_rem(a, b);
-    constrain expected_product_limbs == q.limbs;
-    constrain expected_remainder == r.limbs;
+    assert(expected_product_limbs == q.limbs);
+    assert(expected_remainder == r.limbs);
 }
 
 // a=79228162532711081671548469323
@@ -246,8 +246,8 @@ fn test_div_rem_case2() {
     let expected_product_limbs : [u32; 8] = [1, 1, 1, 0, 0, 0, 0, 0];
     let expected_remainder : [u32; 8] = [75, 0, 0, 0, 0, 0, 0, 0];
     let (q, r) = div_rem(a, b);
-    constrain expected_product_limbs == q.limbs;
-    constrain expected_remainder == r.limbs;
+    assert(expected_product_limbs == q.limbs);
+    assert(expected_remainder == r.limbs);
 }
 
 // a=79228162532711081671548469323
@@ -261,8 +261,8 @@ fn test_div_rem_case3() {
     let expected_product_limbs : [u32; 8] = [1, 0, 0, 0, 0, 0, 0, 0];
     let expected_remainder : [u32; 8] = [0, 0, 0, 0, 0, 0, 0, 0];
     let (q, r) = div_rem(a, b);
-    constrain expected_product_limbs == q.limbs;
-    constrain expected_remainder == r.limbs;
+    assert(expected_product_limbs == q.limbs);
+    assert(expected_remainder == r.limbs);
 }
 
 // a=75
@@ -276,8 +276,8 @@ fn test_div_rem_case4() {
     let expected_product_limbs : [u32; 8] = [0, 0, 0, 0, 0, 0, 0, 0];
     let expected_remainder : [u32; 8] = [75, 0, 0, 0, 0, 0, 0, 0];
     let (q, r) = div_rem(a, b);
-    constrain expected_product_limbs == q.limbs;
-    constrain expected_remainder == r.limbs;
+    assert(expected_product_limbs == q.limbs);
+    assert(expected_remainder == r.limbs);
 }
 
 // a=11
@@ -291,8 +291,8 @@ fn test_div_rem_case5() {
     let expected_product_limbs : [u32; 8] = [2, 0, 0, 0, 0, 0, 0, 0];
     let expected_remainder : [u32; 8] = [1, 0, 0, 0, 0, 0, 0, 0];
     let (q, r) = div_rem(a, b);
-    constrain expected_product_limbs == q.limbs;
-    constrain expected_remainder == r.limbs;
+    assert(expected_product_limbs == q.limbs);
+    assert(expected_remainder == r.limbs);
 }
 
 // a=4294967296
@@ -306,8 +306,8 @@ fn test_div_rem_case6() {
     let expected_product_limbs : [u32; 8] = [2147483648, 0, 0, 0, 0, 0, 0, 0];
     let expected_remainder : [u32; 8] = [0, 0, 0, 0, 0, 0, 0, 0];
     let (q, r) = div_rem(a, b);
-    constrain expected_product_limbs == q.limbs;
-    constrain expected_remainder == r.limbs;
+    assert(expected_product_limbs == q.limbs);
+    assert(expected_remainder == r.limbs);
 }
 
 // a=26959946667150639794667015087019630673637144422540572481103610249216
@@ -321,8 +321,8 @@ fn test_div_rem_case7() {
     let expected_product_limbs : [u32; 8] = [0, 0, 0, 0, 0, 0, 2147483648, 0];
     let expected_remainder : [u32; 8] = [0, 0, 0, 0, 0, 0, 0, 0];
     let (q, r) = div_rem(a, b);
-    constrain expected_product_limbs == q.limbs;
-    constrain expected_remainder == r.limbs;
+    assert(expected_product_limbs == q.limbs);
+    assert(expected_remainder == r.limbs);
 }
 
 // a=18446744073709551616
@@ -336,8 +336,8 @@ fn test_div_rem_case8() {
     let expected_product_limbs : [u32; 8] = [0, 2147483648, 0, 0, 0, 0, 0, 0];
     let expected_remainder : [u32; 8] = [0, 0, 0, 0, 0, 0, 0, 0];
     let (q, r) = div_rem(a, b);
-    constrain expected_product_limbs == q.limbs;
-    constrain expected_remainder == r.limbs;
+    assert(expected_product_limbs == q.limbs);
+    assert(expected_remainder == r.limbs);
 }
 
 // a=18446744073709551616
@@ -351,8 +351,8 @@ fn test_div_rem_case9() {
     let expected_product_limbs : [u32; 8] = [2147483648, 0, 0, 0, 0, 0, 0, 0];
     let expected_remainder : [u32; 8] = [0, 0, 0, 0, 0, 0, 0, 0];
     let (q, r) = div_rem(a, b);
-    constrain expected_product_limbs == q.limbs;
-    constrain expected_remainder == r.limbs;
+    assert(expected_product_limbs == q.limbs);
+    assert(expected_remainder == r.limbs);
 }
 
 #[test]
@@ -361,10 +361,10 @@ fn test_div_wide_allow_overflow_case1() {
         1, 0, 0,
         0, 0, 2,
     );
-    constrain q_hi == 0;
-    constrain q_med == 2147483648;
-    constrain q_lo == 0;
-    constrain r_hi == 0;
-    constrain r_med == 0;
-    constrain r_lo == 0;
+    assert(q_hi == 0);
+    assert(q_med == 2147483648);
+    assert(q_lo == 0);
+    assert(r_hi == 0);
+    assert(r_med == 0);
+    assert(r_lo == 0);
 }

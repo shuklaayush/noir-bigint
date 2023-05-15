@@ -40,8 +40,8 @@ fn test_add_limbs_with_carry_case1() {
     let expected_sum = 0;
     let expected_new_carry = 1;
     let (sum, new_carry) = add_limbs_with_carry(a, b, 0);
-    constrain sum == expected_sum;
-    constrain new_carry == expected_new_carry;
+    assert(sum == expected_sum);
+    assert(new_carry == expected_new_carry);
 }
 
 #[test]
@@ -51,8 +51,8 @@ fn test_add_limbs_with_carry_case2() {
     let expected_sum = 98;
     let expected_new_carry = 1;
     let (sum, new_carry) = add_limbs_with_carry(a, b, 0);
-    constrain sum == expected_sum;
-    constrain new_carry == expected_new_carry;
+    assert(sum == expected_sum);
+    assert(new_carry == expected_new_carry);
 }
 
 #[test]
@@ -63,8 +63,8 @@ fn test_add_limbs_with_carry_case3() {
     let expected_sum = 22;
     let expected_new_carry = 0;
     let (sum, new_carry) = add_limbs_with_carry(a, b, carry);
-    constrain sum == expected_sum;
-    constrain new_carry == expected_new_carry;
+    assert(sum == expected_sum);
+    assert(new_carry == expected_new_carry);
 }
 
 #[test]
@@ -75,8 +75,8 @@ fn test_add_limbs_with_carry_case4() {
     let expected_sum = 0;
     let expected_new_carry = 1;
     let (sum, new_carry) = add_limbs_with_carry(a, b, carry);
-    constrain sum == expected_sum;
-    constrain new_carry == expected_new_carry;
+    assert(sum == expected_sum);
+    assert(new_carry == expected_new_carry);
 }
 
 //sub_limbs_with_borrow 
@@ -87,8 +87,8 @@ fn test_sub_limbs_with_borrow_case1() {
     let expected_diff = 2;
     let expected_new_borrow = 0;
     let (diff, new_borrow) = sub_limbs_with_borrow(a, b, 0);
-    constrain diff == expected_diff;
-    constrain new_borrow == expected_new_borrow;
+    assert(diff == expected_diff);
+    assert(new_borrow == expected_new_borrow);
 }
 
 #[test]
@@ -98,8 +98,8 @@ fn test_sub_limbs_with_borrow_case2() {
     let expected_diff = (constants::U64_POW_2_32 - 1) as u32;
     let expected_new_borrow = 1;
     let (diff, new_borrow) = sub_limbs_with_borrow(a, b, 0);
-    constrain diff == expected_diff;
-    constrain new_borrow == expected_new_borrow;
+    assert(diff == expected_diff);
+    assert(new_borrow == expected_new_borrow);
 }
 
 #[test]
@@ -110,8 +110,8 @@ fn test_sub_limbs_with_borrow_case3() {
     let expected_diff = (constants::U64_POW_2_32 - 2) as u32;
     let expected_new_borrow = 1;
     let (diff, new_borrow) = sub_limbs_with_borrow(a, b, borrow);
-    constrain diff == expected_diff;
-    constrain new_borrow == expected_new_borrow;
+    assert(diff == expected_diff);
+    assert(new_borrow == expected_new_borrow);
 }
 
 #[test]
@@ -122,8 +122,8 @@ fn test_sub_limbs_with_borrow_case4() {
     let expected_diff = 955;
     let expected_new_borrow = 0;
     let (diff, new_borrow) = sub_limbs_with_borrow(a, b, borrow);
-    constrain diff == expected_diff;
-    constrain new_borrow == expected_new_borrow;
+    assert(diff == expected_diff);
+    assert(new_borrow == expected_new_borrow);
 }
 
 #[test]
@@ -134,8 +134,8 @@ fn test_sub_limbs_with_borrow_case5() {
     let expected_diff = (constants::U64_POW_2_32 - 1) as u32;
     let expected_new_borrow = 1;
     let (diff, new_borrow) = sub_limbs_with_borrow(a, b, borrow);
-    constrain diff == expected_diff;
-    constrain new_borrow == expected_new_borrow;
+    assert(diff == expected_diff);
+    assert(new_borrow == expected_new_borrow);
 }
 
 // mul_limbs_with_carry
@@ -148,8 +148,8 @@ fn test_mul_limbs_with_carry_case1() {
     let expected_product = 181;
     let expected_new_carry = 0;
     let (product, new_carry) = mul_limbs_with_carry(a, b, c, carry);
-    constrain product == expected_product;
-    constrain new_carry == expected_new_carry;
+    assert(product == expected_product);
+    assert(new_carry == expected_new_carry);
 }
 
 #[test]
@@ -161,8 +161,8 @@ fn test_mul_limbs_with_carry_case2() {
     let expected_product = 1;
     let expected_new_carry = 4294967294; // 2^32 - 2
     let (product, new_carry) = mul_limbs_with_carry(a, b, c, carry);
-    constrain product == expected_product;
-    constrain new_carry == expected_new_carry;
+    assert(product == expected_product);
+    assert(new_carry == expected_new_carry);
 }
 
 #[test]
@@ -174,6 +174,6 @@ fn test_mul_limbs_with_carry_case3() {
     let expected_product = 0;
     let expected_new_carry = 4294967295; // 2^32 - 1
     let (product, new_carry) = mul_limbs_with_carry(a, b, c, carry);
-    constrain product == expected_product;
-    constrain new_carry == expected_new_carry;
+    assert(product == expected_product);
+    assert(new_carry == expected_new_carry);
 }

@@ -1,12 +1,12 @@
 use dep::bigint;
 
 fn main(x : [u32; bigint::constants::NUM_LIMBS], y : [u32; bigint::constants::NUM_LIMBS]) -> pub u32 {
-    constrain x != y;
+    assert(x != y);
     // let x_as_bigint = BigInt::new(x);
     // let y_as_bigint = BigInt::new(y);
     // let product = x_as_bigint.mul(y_as_bigint);
     // let expected_product_limbs = [1 as u32, 0, 0, 0, 0, 0, 0, 0, 4294967294, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295];
-    // constrain product.limbs == expected_product_limbs;
+    // assert(product.limbs == expected_product_limbs);
     bigint::run_tests();
     // let a = bigint::BigInt::new(x);
     // let (a_msl_index, a2, a1, a0) = a.three_most_significant_limbs();
@@ -28,9 +28,9 @@ fn main(x : [u32; bigint::constants::NUM_LIMBS], y : [u32; bigint::constants::NU
     // let q = bigint::div_rem_core(a, b);
     // let x = a.mul(b);
     // x.limbs[2]
-    // constrain q.limbs[0] == 3221225479;
-    // constrain q.limbs[1] == 2147483645;
-    // constrain q.limbs[2] == 0;
+    // assert(q.limbs[0] == 3221225479);
+    // assert(q.limbs[1] == 2147483645);
+    // assert(q.limbs[2] == 0);
     // q.limbs[0]
     // a.limbs[0]
     // q.overflow
