@@ -1,6 +1,8 @@
 use dep::std::println;
 mod utils;
 
+global LIMB_BITS = 63;
+
 struct BigUint63<LIMBS> {
     limbs: [u63; LIMBS],
 }
@@ -36,7 +38,7 @@ impl<LIMBS> BigUint63<LIMBS> {
 
         (res, carry)
     }
-    
+
     fn sub(self: Self, other: Self) -> (Self, u63) {
         let mut res = BigUint63::zero();
         let mut borrow = 0 as u63;
@@ -114,6 +116,82 @@ impl<LIMBS> BigUint63<LIMBS> {
     // Returns true iff this number < other.
     fn lt(self: Self, other: Self) -> bool {
         other.gt(self)
+    }
+
+    fn is_zero(self: Self) -> bool {
+        self.eq(BigUint63::zero())
+    }
+
+    fn div(self: Self, other: Self) -> (Self, Self) {
+        assert(!other.is_zero());
+
+        let mb = rhs.bits_vartime();
+        let mut bd = Self::BITS - mb;
+        let mut rem = *self;
+        let mut quo = Self::ZERO;
+        let mut c = rhs.shl_vartime(bd);
+
+        loop {
+            let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
+            rem = Self::ct_select(&r, &rem, CtChoice::from_mask(borrow.0));
+            r = quo.bitor(&Self::ONE);
+            quo = Self::ct_select(&r, &quo, CtChoice::from_mask(borrow.0));
+            if bd == 0 {
+                break;
+            }
+            bd -= 1;
+            c = c.shr_vartime(1);
+            quo = quo.shl_vartime(1);
+        }
+
+        (quo, rem)
+    }
+
+    /// Computes `self << shift` where `0 <= shift < Limb::BITS`,
+    /// returning the result and the carry.
+    fn shl_limb(&self, n: usize) -> (Self, u63) {
+        let mut limbs = [Limb::ZERO; LIMBS];
+
+        let nz = Limb(n as Word).ct_is_nonzero();
+        let lshift = n as Word;
+        let rshift = Limb::ct_select(Limb::ZERO, Limb((Limb::BITS - n) as Word), nz).0;
+        let carry = Limb::ct_select(
+            Limb::ZERO,
+            Limb(self.limbs[LIMBS - 1].0.wrapping_shr(Word::BITS - n as u32)),
+            nz,
+        );
+
+        let mut i = LIMBS - 1;
+        while i > 0 {
+            let mut limb = self.limbs[i].0 << lshift;
+            let hi = self.limbs[i - 1].0 >> rshift;
+            limb |= nz.if_true(hi);
+            limbs[i] = Limb(limb);
+            i -= 1
+        }
+        limbs[0] = Limb(self.limbs[0].0 << lshift);
+
+        (Uint::<LIMBS>::new(limbs), carry)
+    }
+
+    /// Computes `self << shift`.
+    pub const fn shl(self: Self, n: u32) -> Self {
+        let mut res = BigUint63::zero();
+
+        // TODO: Should this just be >?
+        if n >= LIMB_BITS * LIMBS {
+            return res;
+        }
+
+        let shift_num = n / LIMB_BITS;
+        let rem = n % LIMB_BITS;
+
+        for i in shift_num..LIMBS {
+            res.limbs[i] = self.limbs[i - shift_num];
+        }
+
+        let (new_lower, _carry) = res.shl_limb(rem);
+        new_lower
     }
 
     // // Returns self + other % modulus.
@@ -231,7 +309,7 @@ fn test_add3() {
     let b = BigUint63::new([1, 0, 0, 0]);
     let (sum, carry) = a.add(b);
 
-    assert(sum.eq(BigUint63::zero()));
+    assert(sum.is_zero());
     assert(carry == 1);
 }
 
@@ -272,7 +350,7 @@ fn test_mul1() {
     let (lo, hi) = a.mul(b);
 
     assert(lo.eq(BigUint63::new([6, 0, 0, 0])));
-    assert(hi.eq(BigUint63::zero()));
+    assert(hi.is_zero());
 }
 
 #[test]
