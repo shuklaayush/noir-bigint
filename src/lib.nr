@@ -1,7 +1,7 @@
-use dep::std::println;
+// use dep::std::println;
 mod utils;
 
-global LIMB_BITS = 63;
+global LIMB_BITS: u63 = 63;
 
 struct BigUint63<LIMBS> {
     limbs: [u63; LIMBS],
@@ -122,165 +122,77 @@ impl<LIMBS> BigUint63<LIMBS> {
         self.eq(BigUint63::zero())
     }
 
-    fn div(self: Self, other: Self) -> (Self, Self) {
-        assert(!other.is_zero());
+    // Computes `self << shift` where `0 <= shift < Limb::BITS`,
+    // returning the result and the carry.
+    // TODO: Optimize for 0?
+    // fn shl_limb(self: Self, n: u63) -> (Self, u63) {
+    //     assert(n < LIMB_BITS);
 
-        let mb = rhs.bits_vartime();
-        let mut bd = Self::BITS - mb;
-        let mut rem = *self;
-        let mut quo = Self::ZERO;
-        let mut c = rhs.shl_vartime(bd);
+    //     let mut res = BigUint63::zero();
 
-        loop {
-            let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::ct_select(&r, &rem, CtChoice::from_mask(borrow.0));
-            r = quo.bitor(&Self::ONE);
-            quo = Self::ct_select(&r, &quo, CtChoice::from_mask(borrow.0));
-            if bd == 0 {
-                break;
-            }
-            bd -= 1;
-            c = c.shr_vartime(1);
-            quo = quo.shl_vartime(1);
-        }
+    //     let rshift = LIMB_BITS - n;
+    //     let carry = self.limbs[LIMBS - 1] >> rshift;
 
-        (quo, rem)
-    }
+    //     for i in LIMBS-1..0 {
+    //         res.limbs[i] = (self.limbs[i] << n) | (self.limbs[i - 1] >> rshift);
+    //     }
+    //     res.limbs[0] = self.limbs[0] << n;
 
-    /// Computes `self << shift` where `0 <= shift < Limb::BITS`,
-    /// returning the result and the carry.
-    fn shl_limb(&self, n: usize) -> (Self, u63) {
-        let mut limbs = [Limb::ZERO; LIMBS];
+    //     (res, carry)
+    // }
 
-        let nz = Limb(n as Word).ct_is_nonzero();
-        let lshift = n as Word;
-        let rshift = Limb::ct_select(Limb::ZERO, Limb((Limb::BITS - n) as Word), nz).0;
-        let carry = Limb::ct_select(
-            Limb::ZERO,
-            Limb(self.limbs[LIMBS - 1].0.wrapping_shr(Word::BITS - n as u32)),
-            nz,
-        );
+    // Computes `self << shift`.
+    // TODO: Should n be BigUint63?
+    // fn shl(self: Self, n: u63) -> Self {
+    //     let mut res = BigUint63::zero();
 
-        let mut i = LIMBS - 1;
-        while i > 0 {
-            let mut limb = self.limbs[i].0 << lshift;
-            let hi = self.limbs[i - 1].0 >> rshift;
-            limb |= nz.if_true(hi);
-            limbs[i] = Limb(limb);
-            i -= 1
-        }
-        limbs[0] = Limb(self.limbs[0].0 << lshift);
+    //     if n < LIMB_BITS * (LIMBS as u63) {
+    //         let shift_num = n / LIMB_BITS;
+    //         let rem = n % LIMB_BITS;
 
-        (Uint::<LIMBS>::new(limbs), carry)
-    }
+    //         for i in 0..LIMBS {
+    //             if i as u63 >= shift_num {
+    //                 res.limbs[i] = self.limbs[i - shift_num as Field];
+    //             }
+    //         }
 
-    /// Computes `self << shift`.
-    pub const fn shl(self: Self, n: u32) -> Self {
-        let mut res = BigUint63::zero();
+    //         let (new_lower, _carry) = res.shl_limb(rem);
+    //         res = new_lower;
+    //     }
 
-        // TODO: Should this just be >?
-        if n >= LIMB_BITS * LIMBS {
-            return res;
-        }
+    //     res
+    // }
 
-        let shift_num = n / LIMB_BITS;
-        let rem = n % LIMB_BITS;
+    // fn div(self: Self, other: Self) -> (Self, Self) {
+    //     assert(!other.is_zero());
 
-        for i in shift_num..LIMBS {
-            res.limbs[i] = self.limbs[i - shift_num];
-        }
+    //     let mb = rhs.bits_vartime();
+    //     let mut bd = Self::BITS - mb;
+    //     let mut rem = *self;
+    //     let mut quo = Self::ZERO;
+    //     let mut c = rhs.shl_vartime(bd);
 
-        let (new_lower, _carry) = res.shl_limb(rem);
-        new_lower
-    }
+    //     loop {
+    //         let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
+    //         rem = Self::ct_select(&r, &rem, CtChoice::from_mask(borrow.0));
+    //         r = quo.bitor(&Self::ONE);
+    //         quo = Self::ct_select(&r, &quo, CtChoice::from_mask(borrow.0));
+    //         if bd == 0 {
+    //             break;
+    //         }
+    //         bd -= 1;
+    //         c = c.shr_vartime(1);
+    //         quo = quo.shl_vartime(1);
+    //     }
+
+    //     (quo, rem)
+    // }
 
     // // Returns self + other % modulus.
     // // fn add_mod(self : Self, other : Self, modulus : Self)
     
     // // Returns self * other % modulus.
     // // fn mul_mod(self : Self, other : Self, modulus : Self)
-    
-    // fn shift(self : Self, shift : u32, left : bool) -> BigInt {
-    //     assert(shift < 8);
-    //     let mut limbs = self.limbs;
-    //     for i in 0..constants::NUM_LIMBS {
-    //         if i as u32 < constants::NUM_LIMBS as u32 - shift {
-    //             if left == true {
-    //                 if shift == 1 {
-    //                     limbs[i] = self.limbs[i + 1];
-    //                 }
-    //                 if shift == 2 {
-    //                     limbs[i] = self.limbs[i + 2];
-    //                 }
-    //                 if shift == 3 {
-    //                     limbs[i] = self.limbs[i + 3];
-    //                 }
-    //                 if shift == 4 {
-    //                     limbs[i] = self.limbs[i + 4];
-    //                 }
-    //                 if shift == 5 {
-    //                     limbs[i] = self.limbs[i + 5];
-    //                 }
-    //                 if shift == 6 {
-    //                     limbs[i] = self.limbs[i + 6];
-    //                 }
-    //                 if shift == 7 {
-    //                     limbs[i] = self.limbs[i + 7];
-    //                 }
-    //             } else {
-    //                 if shift == 1 {
-    //                     limbs[i + 1] = self.limbs[i];
-    //                 }
-    //                 if shift == 2 {
-    //                     limbs[i + 2] = self.limbs[i];
-    //                 }
-    //                 if shift == 3 {
-    //                     limbs[i + 3] = self.limbs[i];
-    //                 }
-    //                 if shift == 4 {
-    //                     limbs[i + 4] = self.limbs[i];
-    //                 }
-    //                 if shift == 5 {
-    //                     limbs[i + 5] = self.limbs[i];
-    //                 }
-    //                 if shift == 6 {
-    //                     limbs[i + 6] = self.limbs[i];
-    //                 }
-    //                 if shift == 7 {
-    //                     limbs[i + 7] = self.limbs[i];
-    //                 }
-    //             }
-    //         } else {
-    //             if left == true {
-    //                 limbs[i] = 0;
-    //             } else {
-    //                 limbs[constants::NUM_LIMBS - i - 1] = 0;
-    //             }
-    //         }
-    //     }
-    //     BigInt::new(limbs)
-    // }
-
-    // // Returns self - (multiplicand * other).
-    // fn sub_mul(self : Self, limb_shift : u32, multiplicand : u32, other : BigInt) -> (BigInt, u32) {
-    //     let shifted = self.shift(limb_shift, true);
-    //     let mut limbs : [u32; constants::NUM_LIMBS] = [0 as u32; constants::NUM_LIMBS];
-    //     let mut borrow : u32 = 0;
-    //     for i in 0..constants::NUM_LIMBS {
-    //         let (limb_diff, new_borrow) = utils::sub_mul_limbs_with_borrow(shifted.limbs[i], multiplicand, other.limbs[i], borrow);
-    //         limbs[i] = limb_diff;
-    //         borrow = new_borrow;
-    //     };
-    //     let unshifted = BigInt::new(limbs).shift(limb_shift, false);
-    //     let mut result = unshifted.limbs;
-    //     for i in 0..constants::NUM_LIMBS {
-    //         if i as u32 < limb_shift {
-    //             result[i] = self.limbs[i];
-    //         }
-    //     };
-        
-    //     (BigInt::new(result), borrow)
-    // }
 }
 
 #[test]
@@ -365,31 +277,40 @@ fn test_mul2() {
 
 #[test]
 fn test_cmp1() {
-    let x = BigUint63::new([2, 0]);
-    let y = BigUint63::new([0, 2]);
+    let a = BigUint63::new([2, 0]);
+    let b = BigUint63::new([0, 2]);
 
-    assert(!x.eq(y));
+    assert(!a.eq(b));
 
-    assert(x.lte(y));
-    assert(!x.gte(y));
+    assert(a.lte(b));
+    assert(!a.gte(b));
 
-    assert(x.lt(y));
-    assert(!x.gt(y));
+    assert(a.lt(b));
+    assert(!a.gt(b));
 }
 
 #[test]
 fn test_cmp2() {
-    let x = BigUint63::new([0, 2]);
-    let y = BigUint63::new([0, 2]);
+    let a = BigUint63::new([0, 2]);
+    let b = BigUint63::new([0, 2]);
 
-    assert(x.eq(y));
+    assert(a.eq(b));
 
-    assert(x.lte(y));
-    assert(x.gte(y));
+    assert(a.lte(b));
+    assert(a.gte(b));
 
-    assert(!x.lt(y));
-    assert(!x.gt(y));
+    assert(!a.lt(b));
+    assert(!a.gt(b));
 }
+
+// #[test]
+// fn test_shl() {
+//     let a = BigUint63::new([1, 2]);
+//     let b = a.shl(126);
+
+//     let l = b.limbs;
+//     println(l);
+// }
 
 // TODO: The following would be the ideal implementation with a generic limb type `T`, but this doesn't seem possible in Noir yet.
 // struct BigUint<T, LIMBS> {
