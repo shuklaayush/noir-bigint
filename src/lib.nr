@@ -1,45 +1,5 @@
 use dep::std::println;
-
-struct BigUint<T, LIMBS> {
-    limbs : [T; LIMBS],
-}
-
-impl<T, LIMBS> BigUint<T, LIMBS> {
-    fn new(limbs: [T; LIMBS]) -> Self {
-        Self {
-            limbs
-        }
-    }
-
-    fn zero(zero: T) -> Self {
-        Self {
-            limbs: [zero; LIMBS]
-        }
-    }
-}
-
-mod arithmetic {
-    // Compute a + b + carry, returning the result and the new carry over.
-    // TODO: Does carry need to be a u63?
-    fn adc(a: u63, b: u63, carry: u63) -> (u63, u63) {
-        let ret = a as Field + b as Field + carry as Field;
-        (ret as u63, (ret as u65 >> 63) as u63)
-    }
-
-    // Compute a - (b + borrow), returning the result and the new borrow.
-    fn sbb(a: u63, b: u63, borrow: u63) -> (u63, u63) {
-        // NOTE: Relies on overflow
-        let ret = a as u65 - (b as u65 + (borrow >> 62) as u65);
-        (ret as u63, (ret >> 2) as u63)
-    }
-
-    // Compute a + (b * c) + carry, returning the result and the new carry over.
-    fn mac(a: u63, b: u63, c: u63, carry: u63) -> (u63, u63) {
-        let ret = (a as Field) + ((b as Field) * (c as Field)) + (carry as Field);
-        // TODO: This shift right at double width is forcing to use <= 126/2 bit limbs
-        (ret as u63, (ret as u126 >> 63) as u63)
-    }
-}
+mod utils;
 
 struct BigUint63<LIMBS> {
     limbs: [u63; LIMBS],
@@ -69,7 +29,7 @@ impl<LIMBS> BigUint63<LIMBS> {
         let mut carry = 0 as u63;
 
         for i in 0..LIMBS {
-            let (sum, new_carry) = arithmetic::adc(self.limbs[i], other.limbs[i], carry);
+            let (sum, new_carry) = utils::adc(self.limbs[i], other.limbs[i], carry);
             res.limbs[i] = sum;
             carry = new_carry;
         };
@@ -82,7 +42,7 @@ impl<LIMBS> BigUint63<LIMBS> {
         let mut borrow = 0 as u63;
 
         for i in 0..LIMBS {
-            let (diff, new_borrow) = arithmetic::sbb(self.limbs[i], other.limbs[i], borrow);
+            let (diff, new_borrow) = utils::sbb(self.limbs[i], other.limbs[i], borrow);
             res.limbs[i] = diff;
             borrow = new_borrow;
         };
@@ -101,11 +61,11 @@ impl<LIMBS> BigUint63<LIMBS> {
                 let k = i + j;
 
                 if k >= LIMBS {
-                    let (n, c) = arithmetic::mac(hi.limbs[k - LIMBS], self.limbs[i], other.limbs[j], carry);
+                    let (n, c) = utils::mac(hi.limbs[k - LIMBS], self.limbs[i], other.limbs[j], carry);
                     hi.limbs[k - LIMBS] = n;
                     carry = c;
                 } else {
-                    let (n, c) = arithmetic::mac(lo.limbs[k], self.limbs[i], other.limbs[j], carry);
+                    let (n, c) = utils::mac(lo.limbs[k], self.limbs[i], other.limbs[j], carry);
                     lo.limbs[k] = n;
                     carry = c;
                 }
@@ -229,7 +189,7 @@ impl<LIMBS> BigUint63<LIMBS> {
     //     let mut limbs : [u32; constants::NUM_LIMBS] = [0 as u32; constants::NUM_LIMBS];
     //     let mut borrow : u32 = 0;
     //     for i in 0..constants::NUM_LIMBS {
-    //         let (limb_diff, new_borrow) = arithmetic::sub_mul_limbs_with_borrow(shifted.limbs[i], multiplicand, other.limbs[i], borrow);
+    //         let (limb_diff, new_borrow) = utils::sub_mul_limbs_with_borrow(shifted.limbs[i], multiplicand, other.limbs[i], borrow);
     //         limbs[i] = limb_diff;
     //         borrow = new_borrow;
     //     };
@@ -353,24 +313,21 @@ fn test_cmp2() {
     assert(!x.gt(y));
 }
 
-// #[test]
-// fn test_add_case2() {
-//     let a = BigUint::new([constants::U32_MAX as u32, constants::U32_MAX as u32, constants::U32_MAX as u32, 0, 0, 0, 0, 0]);
-//     let b = BigUint::new([1 as u32, 0, 0, 0, 0, 0, 0, 0]);
-//     let expected_sum_limbs = [0, 0, 0, 1, 0, 0, 0, 0];
-//     let expected_overflow = 0;
-//     let (sum, overflow) = a.add(b);
-//     assert(sum.limbs == expected_sum_limbs);
-//     assert(overflow == expected_overflow);
+// TODO: The following would be the ideal implementation with a generic limb type `T`, but this doesn't seem possible in Noir yet.
+// struct BigUint<T, LIMBS> {
+//     limbs : [T; LIMBS],
 // }
-
-// #[test]
-// fn test_add_case3() {
-//     let a = BigUint::new([constants::U32_MAX as u32; constants::NUM_LIMBS]);
-//     let b = BigUint::new([1 as u32, 0, 0, 0, 0, 0, 0, 0]);
-//     let expected_sum_limbs = [0, 0, 0, 0, 0, 0, 0, 0];
-//     let expected_overflow = 1;
-//     let (sum, overflow) = a.add(b);
-//     assert(sum.limbs == expected_sum_limbs);
-//     assert(overflow == expected_overflow);
+// 
+// impl<T, LIMBS> BigUint<T, LIMBS> {
+//     fn new(limbs: [T; LIMBS]) -> Self {
+//         Self {
+//             limbs
+//         }
+//     }
+// 
+//     fn zero(zero: T) -> Self {
+//         Self {
+//             limbs: [zero; LIMBS]
+//         }
+//     }
 // }
