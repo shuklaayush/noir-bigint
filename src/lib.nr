@@ -20,32 +20,33 @@ impl<T, LIMBS> BigUint<T, LIMBS> {
 
 mod arithmetic {
     // Compute a + b + carry, returning the result and the new carry over.
-    // TODO: Does carry need to be a u86?
-    fn adc(a: u86, b: u86, carry: u86) -> (u86, u86) {
+    // TODO: Does carry need to be a u63?
+    fn adc(a: u63, b: u63, carry: u63) -> (u63, u63) {
         let ret = a as Field + b as Field + carry as Field;
-        (ret as u86, (ret as u88 >> 86) as u86)
+        (ret as u63, (ret as u65 >> 63) as u63)
     }
 
     // Compute a - (b + borrow), returning the result and the new borrow.
-    fn sbb(a: u86, b: u86, borrow: u86) -> (u86, u86) {
+    fn sbb(a: u63, b: u63, borrow: u63) -> (u63, u63) {
         // NOTE: Relies on overflow
-        let ret = a as u88 - (b as u88 + (borrow >> 85) as u88);
-        (ret as u86, (ret >> 2) as u86)
+        let ret = a as u65 - (b as u65 + (borrow >> 62) as u65);
+        (ret as u63, (ret >> 2) as u63)
     }
 
     // Compute a + (b * c) + carry, returning the result and the new carry over.
-    fn mac(a: u86, b: u86, c: u86, carry: u86) -> (u86, u86) {
+    fn mac(a: u63, b: u63, c: u63, carry: u63) -> (u63, u63) {
         let ret = (a as Field) + ((b as Field) * (c as Field)) + (carry as Field);
-        (ret as u86, (ret as u88 >> 86) as u86)
+        // TODO: This shift right at double width is forcing to use <= 126/2 bit limbs
+        (ret as u63, (ret as u126 >> 63) as u63)
     }
 }
 
-struct BigUint86<LIMBS> {
-    limbs: [u86; LIMBS],
+struct BigUint63<LIMBS> {
+    limbs: [u63; LIMBS],
 }
 
-impl<LIMBS> BigUint86<LIMBS> {
-    fn new(limbs: [u86; LIMBS]) -> Self {
+impl<LIMBS> BigUint63<LIMBS> {
+    fn new(limbs: [u63; LIMBS]) -> Self {
         Self {
             limbs
         }
@@ -53,19 +54,19 @@ impl<LIMBS> BigUint86<LIMBS> {
 
     fn zero() -> Self {
         Self {
-            limbs: [0 as u86; LIMBS]
+            limbs: [0 as u63; LIMBS]
         }
     }
 
     fn one() -> Self {
-        let mut one = BigUint86::zero();
+        let mut one = BigUint63::zero();
         one.limbs[0] = 1;
         one
     }
 
-    fn add(self: Self, other: Self) -> (Self, u86) {
-        let mut res = BigUint86::zero();
-        let mut carry = 0 as u86;
+    fn add(self: Self, other: Self) -> (Self, u63) {
+        let mut res = BigUint63::zero();
+        let mut carry = 0 as u63;
 
         for i in 0..LIMBS {
             let (sum, new_carry) = arithmetic::adc(self.limbs[i], other.limbs[i], carry);
@@ -76,9 +77,9 @@ impl<LIMBS> BigUint86<LIMBS> {
         (res, carry)
     }
     
-    fn sub(self: Self, other: Self) -> (Self, u86) {
-        let mut res = BigUint86::zero();
-        let mut borrow = 0 as u86;
+    fn sub(self: Self, other: Self) -> (Self, u63) {
+        let mut res = BigUint63::zero();
+        let mut borrow = 0 as u63;
 
         for i in 0..LIMBS {
             let (diff, new_borrow) = arithmetic::sbb(self.limbs[i], other.limbs[i], borrow);
@@ -90,11 +91,11 @@ impl<LIMBS> BigUint86<LIMBS> {
     }
 
     fn mul(self: Self, other: Self) -> (Self, Self) {
-        let mut lo = BigUint86::zero();
-        let mut hi = BigUint86::zero();
+        let mut lo = BigUint63::zero();
+        let mut hi = BigUint63::zero();
 
         for i in 0..LIMBS {
-            let mut carry = 0 as u86;
+            let mut carry = 0 as u63;
 
             for j in 0..LIMBS {
                 let k = i + j;
@@ -142,7 +143,7 @@ impl<LIMBS> BigUint86<LIMBS> {
     // Returns true iff this number > other.
     fn gt(self: Self, other: Self) -> bool {
         let (diff, borrow) = self.sub(other);
-        (borrow == 0) & !diff.eq(BigUint86::zero())
+        (borrow == 0) & !diff.eq(BigUint63::zero())
     }
 
     // Returns true iff this number <= other.
@@ -245,93 +246,111 @@ impl<LIMBS> BigUint86<LIMBS> {
 }
 
 #[test]
-fn test_new() {
-    let bint: BigUint86<4> = BigUint86::zero();
-    let l = bint.limbs;
-    println(l);
-}
-
-#[test]
 fn test_add1() {
-    let a = BigUint86::new([1, 0, 0, 0]);
-    let b = BigUint86::new([2, 0, 0, 0]);
+    let a = BigUint63::new([1, 0, 0, 0]);
+    let b = BigUint63::new([2, 0, 0, 0]);
     let (sum, carry) = a.add(b);
 
-    assert(sum.eq(BigUint86::new([3, 0, 0, 0])));
+    assert(sum.eq(BigUint63::new([3, 0, 0, 0])));
     assert(carry == 0);
 }
 
 #[test]
 fn test_add2() {
-    let a = BigUint86::new([-1 as u86, -1 as u86, -1 as u86, 0]);
-    let b = BigUint86::new([1, 0, 0, 0]);
+    let a = BigUint63::new([-1 as u63, -1 as u63, -1 as u63, 0]);
+    let b = BigUint63::new([1, 0, 0, 0]);
     let (sum, carry) = a.add(b);
 
-    assert(sum.eq(BigUint86::new([0, 0, 0, 1])));
+    assert(sum.eq(BigUint63::new([0, 0, 0, 1])));
     assert(carry == 0);
 }
 
 #[test]
 fn test_add3() {
-    let a = BigUint86::new([-1 as u86; 4]);
-    let b = BigUint86::new([1, 0, 0, 0]);
+    let a = BigUint63::new([-1 as u63; 4]);
+    let b = BigUint63::new([1, 0, 0, 0]);
     let (sum, carry) = a.add(b);
 
-    assert(sum.eq(BigUint86::zero()));
+    assert(sum.eq(BigUint63::zero()));
     assert(carry == 1);
 }
 
 #[test]
 fn test_sub1() {
-    let a = BigUint86::new([5, 0, 0, 0]);
-    let b = BigUint86::new([3, 0, 0, 0]);
+    let a = BigUint63::new([5, 0, 0, 0]);
+    let b = BigUint63::new([3, 0, 0, 0]);
     let (diff, borrow) = a.sub(b);
 
-    assert(diff.eq(BigUint86::new([2, 0, 0, 0])));
+    assert(diff.eq(BigUint63::new([2, 0, 0, 0])));
     assert(borrow == 0);
 }
 
 #[test]
 fn test_sub2() {
-    let a = BigUint86::new([1, 2, 0, 0]);
-    let b = BigUint86::new([2, 0, 0, 0]);
+    let a = BigUint63::new([1, 2, 0, 0]);
+    let b = BigUint63::new([2, 0, 0, 0]);
     let (diff, borrow) = a.sub(b);
 
-    assert(diff.eq(BigUint86::new([-1 as u86, 1, 0, 0])));
+    assert(diff.eq(BigUint63::new([-1 as u63, 1, 0, 0])));
     assert(borrow == 0);
 }
 
 #[test]
 fn test_sub3() {
-    let a = BigUint86::new([1, 0, 0, 0]);
-    let b = BigUint86::new([2, 0, 0, 0]);
+    let a = BigUint63::new([1, 0, 0, 0]);
+    let b = BigUint63::new([2, 0, 0, 0]);
     let (diff, borrow) = a.sub(b);
 
-    assert(diff.eq(BigUint86::new([-1 as u86; 4])));
-    assert(borrow >> 85 == 1);
+    assert(diff.eq(BigUint63::new([-1 as u63; 4])));
+    assert(borrow >> 62 == 1);
 }
 
 #[test]
 fn test_mul1() {
-    let a = BigUint86::new([2, 0, 0, 0]);
-    let b = BigUint86::new([3, 0, 0, 0]);
+    let a = BigUint63::new([2, 0, 0, 0]);
+    let b = BigUint63::new([3, 0, 0, 0]);
     let (lo, hi) = a.mul(b);
 
-    assert(lo.eq(BigUint86::new([6, 0, 0, 0])));
-    assert(hi.eq(BigUint86::zero()));
+    assert(lo.eq(BigUint63::new([6, 0, 0, 0])));
+    assert(hi.eq(BigUint63::zero()));
 }
 
 #[test]
 fn test_mul2() {
-    let a = BigUint86::new([-1 as u86; 4]);
-    let b = BigUint86::new([-1 as u86; 4]);
+    let a = BigUint63::new([-1 as u63; 4]);
+    let b = BigUint63::new([-1 as u63; 4]);
     let (lo, hi) = a.mul(b);
 
-    let l = hi.limbs;
-    println(l);
+    assert(lo.eq(BigUint63::new([1, 0, 0, 0])));
+    assert(hi.eq(BigUint63::new([-2 as u63, -1 as u63, -1 as u63, -1 as u63])));
+}
 
-    assert(lo.eq(BigUint86::new([1, 0, 0, 0])));
-    assert(hi.eq(BigUint86::new([-2 as u86, -1 as u86, -1 as u86, -1 as u86])));
+#[test]
+fn test_cmp1() {
+    let x = BigUint63::new([2, 0]);
+    let y = BigUint63::new([0, 2]);
+
+    assert(!x.eq(y));
+
+    assert(x.lte(y));
+    assert(!x.gte(y));
+
+    assert(x.lt(y));
+    assert(!x.gt(y));
+}
+
+#[test]
+fn test_cmp2() {
+    let x = BigUint63::new([0, 2]);
+    let y = BigUint63::new([0, 2]);
+
+    assert(x.eq(y));
+
+    assert(x.lte(y));
+    assert(x.gte(y));
+
+    assert(!x.lt(y));
+    assert(!x.gt(y));
 }
 
 // #[test]
