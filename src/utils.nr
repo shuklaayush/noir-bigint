@@ -1,22 +1,22 @@
 use crate::LIMB_BITS as BITS;
 
 // Compute a + b + carry, returning the result and the new carry over.
-// TODO: Does carry need to be a u63?
-fn adc(a: u63, b: u63, carry: u63) -> (u63, u63) {
+// TODO: Does carry need to be a u56?
+fn adc(a: u56, b: u56, carry: u56) -> (u56, u56) {
     let ret = a as Field + b as Field + carry as Field;
-    (ret as u63, (ret as u126 >> BITS as u126) as u63)
+    (ret as u56, (ret as u112 >> BITS as u112) as u56)
 }
 
 // Compute a - (b + borrow), returning the result and the new borrow.
-fn sbb(a: u63, b: u63, borrow: u63) -> (u63, u63) {
+fn sbb(a: u56, b: u56, borrow: u56) -> (u56, u56) {
     // NOTE: Relies on overflow
-    let ret = a as u126 - (b as u126 + (borrow as u126 >> (BITS as u126 - 1)));
-    (ret as u63, (ret >> 63) as u63)
+    let ret = a as u112 - (b as u112 + (borrow as u112 >> (BITS as u112 - 1)));
+    (ret as u56, (ret >> 56) as u56)
 }
 
 // Compute a + (b * c) + carry, returning the result and the new carry over.
-fn mac(a: u63, b: u63, c: u63, carry: u63) -> (u63, u63) {
+fn mac(a: u56, b: u56, c: u56, carry: u56) -> (u56, u56) {
     let ret = (a as Field) + ((b as Field) * (c as Field)) + (carry as Field);
-    // TODO: This shift right at double width is forcing to use <= 126/2 bit limbs
-    (ret as u63, (ret as u126 >> BITS as u126) as u63)
+    // TODO: This shift right at double width is forcing to use <= 112/2 bit limbs
+    (ret as u56, (ret as u112 >> BITS as u112) as u56)
 }
