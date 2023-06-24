@@ -309,7 +309,20 @@ impl BigUint56 {
     }
 
     // Returns self + other % modulus.
-    // fn add_mod(self: Self, other: Self, modulus: Self);
+    // Assumes `self + other` as unbounded integer is `< 2*modulus`.
+    fn add_mod(self: Self, other: Self, modulus: Self) -> Self {
+        let (sum1, carry) = self.adc(other);
+
+        // Attempt to subtract the modulus, to ensure the result is in the field.
+        let (sum2, borrow1) = sum1.sbb(modulus);
+        let (_diff, borrow2) = utils::sbb(carry, 0 as u56, borrow1);
+
+        if borrow2 == 0 {
+            sum2
+        } else {
+            sum2.add(modulus)
+        }
+    }
     
     // Returns self * other % modulus.
     // fn mul_mod(self : Self, other : Self, modulus : Self)
@@ -341,7 +354,7 @@ fn test_to_bytes1() {
     let a = BigUint56::zero();
     let b = BigUint56::one();
 
-    let (c, _borrow) = a.sub(b);
+    let c = a.sub(b);
     assert(c.to_bytes() == [-1 as u8; MAX_BYTES]);
 }
 
@@ -588,8 +601,18 @@ fn test_div2() {
     assert(r.eq(BigUint56::from_bytes([0])));
 }
 
+#[test]
+fn test_add_mod1() {
+    let a = BigUint56::from_bytes([2]);
+    let b = BigUint56::from_bytes([7]);
+    let c = BigUint56::from_bytes([5]);
+
+    let d = a.add_mod(b, c);
+    assert(d.eq(BigUint56::from_bytes([4])));
+}
+
 // TODO: 
-// 1. I recognize that operations as implemented here are inefficient in the context of crypto libraries but it's a good start.
+// 1. The operations as implemented here are inefficient in the context of crypto libraries but it's a good start.
 // 2. Remove `carry` from `add`, `sub`, `mul` and `div` and implement it in a separate function.
 // 3. The following would be the ideal implementation with a generic limb type `T`, but this doesn't seem possible in Noir yet.
 //  struct BigUint<T, LIMBS> {
