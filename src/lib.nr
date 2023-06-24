@@ -65,7 +65,7 @@ impl BigUint56 {
         res
     }
 
-    fn add(self: Self, other: Self) -> (Self, u56) {
+    fn adc(self: Self, other: Self) -> (Self, u56) {
         let mut res = BigUint56::zero();
         let mut carry = 0 as u56;
 
@@ -79,12 +79,12 @@ impl BigUint56 {
     }
 
     // TODO: Check if carry is 0?
-    fn add_no_carry(self: Self, other: Self) -> Self {
-        let (res, _carry) = self.add(other);
+    fn add(self: Self, other: Self) -> Self {
+        let (res, _carry) = self.adc(other);
         res
     }
 
-    fn sub(self: Self, other: Self) -> (Self, u56) {
+    fn sbb(self: Self, other: Self) -> (Self, u56) {
         let mut res = BigUint56::zero();
         let mut borrow = 0 as u56;
 
@@ -97,8 +97,9 @@ impl BigUint56 {
         (res, borrow)
     }
 
-    fn sub_no_borrow(self: Self, other: Self) -> Self {
-        let (res, _borrow) = self.sub(other);
+    // TODO: Check if borrow is 0?
+    fn sub(self: Self, other: Self) -> Self {
+        let (res, _borrow) = self.sbb(other);
         res
     }
 
@@ -251,8 +252,8 @@ impl BigUint56 {
             for i in 0..MAX_BITS+1 {
                 if i as u56 <= bit_diff {
                     if rem.gte(c) {
-                        rem = rem.sub_no_borrow(c);
-                        quo = quo.shl(1).add_no_carry(BigUint56::one());
+                        rem = rem.sub(c);
+                        quo = quo.shl(1).add(BigUint56::one());
                     } else {
                         quo = quo.shl(1);
                     }
@@ -283,13 +284,13 @@ impl BigUint56 {
 
     // Returns true iff this number >= other.
     fn gte(self: Self, other: Self) -> bool {
-        let (_diff, borrow) = self.sub(other);
+        let (_diff, borrow) = self.sbb(other);
         borrow == 0
     }
 
     // Returns true iff this number > other.
     fn gt(self: Self, other: Self) -> bool {
-        let (diff, borrow) = self.sub(other);
+        let (diff, borrow) = self.sbb(other);
         (borrow == 0) & !diff.eq(BigUint56::zero())
     }
 
@@ -307,11 +308,11 @@ impl BigUint56 {
         self.eq(BigUint56::zero())
     }
 
-    // // Returns self + other % modulus.
-    // // fn add_mod(self : Self, other : Self, modulus : Self)
+    // Returns self + other % modulus.
+    // fn add_mod(self: Self, other: Self, modulus: Self);
     
-    // // Returns self * other % modulus.
-    // // fn mul_mod(self : Self, other : Self, modulus : Self)
+    // Returns self * other % modulus.
+    // fn mul_mod(self : Self, other : Self, modulus : Self)
 }
 
 #[test]
@@ -348,27 +349,25 @@ fn test_to_bytes1() {
 fn test_add1() {
     let a = BigUint56::from_bytes([1]);
     let b = BigUint56::from_bytes([2]);
-    let (sum, carry) = a.add(b);
+    let sum = a.add(b);
 
     assert(sum.eq(BigUint56::from_bytes([3])));
-    assert(carry == 0);
 }
 
 #[test]
 fn test_add2() {
     let a = BigUint56::new([-1 as u56, -1 as u56, -1 as u56, -1 as u56, 0]);
     let b = BigUint56::new([1, 0, 0, 0, 0]);
-    let (sum, carry) = a.add(b);
+    let sum = a.add(b);
 
     assert(sum.eq(BigUint56::new([0, 0, 0, 0, 1])));
-    assert(carry == 0);
 }
 
 #[test]
-fn test_add3() {
+fn test_adc1() {
     let a = BigUint56::new([-1 as u56; LIMBS]);
     let b = BigUint56::one();
-    let (sum, carry) = a.add(b);
+    let (sum, carry) = a.adc(b);
 
     assert(sum.is_zero());
     assert(carry == 1);
@@ -378,27 +377,25 @@ fn test_add3() {
 fn test_sub1() {
     let a = BigUint56::from_bytes([5]);
     let b = BigUint56::from_bytes([3]);
-    let (diff, borrow) = a.sub(b);
+    let diff = a.sub(b);
 
     assert(diff.eq(BigUint56::from_bytes([2])));
-    assert(borrow == 0);
 }
 
 #[test]
 fn test_sub2() {
     let a = BigUint56::new([1, 2, 0, 0, 0]);
     let b = BigUint56::new([2, 0, 0, 0, 0]);
-    let (diff, borrow) = a.sub(b);
+    let diff = a.sub(b);
 
     assert(diff.eq(BigUint56::new([-1 as u56, 1, 0, 0, 0])));
-    assert(borrow == 0);
 }
 
 #[test]
-fn test_sub3() {
+fn test_sbb1() {
     let a = BigUint56::new([1, 0, 0, 0, 0]);
     let b = BigUint56::new([2, 0, 0, 0, 0]);
-    let (diff, borrow) = a.sub(b);
+    let (diff, borrow) = a.sbb(b);
 
     assert(diff.eq(BigUint56::new([-1 as u56; 5])));
     assert(borrow >> (LIMB_BITS - 1) == 1);
@@ -611,3 +608,7 @@ fn test_div2() {
 //              limbs: [zero; LIMBS]
 //          }
 //      }
+
+// References:
+// 1. https://github.com/rust-num/num-bigint
+// 2. https://github.com/RustCrypto/crypto-bigint
