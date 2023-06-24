@@ -3,11 +3,12 @@ use dep::std::println;
 mod utils;
 mod field;
 
+// TODO: Strongly type all globals as either Field or u56
 global LIMB_BITS = 56;
 global LIMBS = 5;
 
 // TODO: Noir doesn't support global expressions so these are hardcoded
-global MAX_BITS = 280; // LIMB_BITS * LIMBS
+global MAX_BITS: Field = 280; // LIMB_BITS * LIMBS
 global BYTES_PER_LIMB = 7; // LIMB_BITS / 8
 global MAX_BYTES = 35; // LIMBS * BYTES_PER_LIMB
 
@@ -142,7 +143,7 @@ impl BigUint56 {
     fn shl(self: Self, n: u56) -> Self {
         let mut res = BigUint56::zero();
 
-        if n < MAX_BITS {
+        if n < MAX_BITS as u56 {
             let shift_num = n / LIMB_BITS;
             let rem = n % LIMB_BITS;
 
@@ -180,7 +181,7 @@ impl BigUint56 {
     fn shr(self: Self, n: u56) -> Self {
         let mut res = BigUint56::zero();
 
-        if n < MAX_BITS {
+        if n < MAX_BITS as u56 {
             let shift_num = n / LIMB_BITS;
             let rem = n % LIMB_BITS;
 
@@ -196,24 +197,37 @@ impl BigUint56 {
         res
     }
 
-    // fn bits_vartime(self: Self) -> u56 {
-    //     let mut res = MAX_BITS;
-    //     while res > 0 && self.bit(res - 1) == 0 {
-    //         res -= 1;
-    //     }
-    //     res
-    // }
+    fn bit(self: Self, index: u56) -> u56 {
+        assert(index < MAX_BITS as u56);
 
-    // fn bit(self: Self, index: u56) -> u56 {
-    //     assert(index < MAX_BITS);
-    //     let limb = self.limbs[index / LIMB_BITS];
-    //     (limb >> (index % LIMB_BITS)) & 1
-    // }
+        let limb_index = index / LIMB_BITS;
+        let bit_index = index % LIMB_BITS;
+
+        let limb = self.limbs[limb_index as Field];
+        (limb >> bit_index) & 1
+    }
+
+    // TODO: Use built-in to_le_bits and see if it's more efficient.
+    fn bits(self: Self) -> u56 {
+        let mut res = 0;
+        let mut done = false;
+        for i in 1..MAX_BITS {
+            if !done {
+                let index = (MAX_BITS - i) as u56;
+                if self.bit(index) != 0 {
+                    res = index + 1;
+                    done = true;
+                }
+            }
+        }
+
+        res
+    }
 
     // fn div(self: Self, other: Self) -> (Self, Self) {
     //     assert(!other.is_zero());
 
-    //     let mb = other.bits_vartime();
+    //     let mb = other.bits();
     //     let mut bd = MAX_BITS - mb;
     //     let mut rem = self;
     //     let mut quo = BigUint56::zero();
@@ -446,7 +460,7 @@ fn test_shl1() {
 #[test]
 fn test_shl2() {
     let a = BigUint56::from_bytes([1, 2]);
-    let b = a.shl(MAX_BITS);
+    let b = a.shl(MAX_BITS as u56);
 
     assert(b.is_zero());
 }
@@ -484,7 +498,7 @@ fn test_shr1() {
 #[test]
 fn test_shr2() {
     let a = BigUint56::from_bytes([1, 2]);
-    let b = a.shr(MAX_BITS);
+    let b = a.shr(MAX_BITS as u56);
 
     assert(b.is_zero());
 }
@@ -511,21 +525,56 @@ fn test_shr4() {
     assert(b.eq(BigUint56::from_bytes([1, 2])));
 }
 
-// TODO: The following would be the ideal implementation with a generic limb type `T`, but this doesn't seem possible in Noir yet.
-// struct BigUint<T, LIMBS> {
-//     limbs : [T; LIMBS],
-// }
-// 
-// impl<T, LIMBS> BigUint<T, LIMBS> {
-//     fn new(limbs: [T; LIMBS]) -> Self {
-//         Self {
-//             limbs
-//         }
-//     }
-// 
-//     fn zero(zero: T) -> Self {
-//         Self {
-//             limbs: [zero; LIMBS]
-//         }
-//     }
-// }
+#[test]
+fn test_bits1() {
+    let a = BigUint56::from_bytes([0]);
+    let b = a.bits();
+
+    assert(b == 0);
+}
+
+#[test]
+fn test_bits2() {
+    let a = BigUint56::from_bytes([1]);
+    let b = a.bits();
+
+    println(b);
+    // assert(b == 1);
+}
+
+#[test]
+fn test_bits3() {
+    let a = BigUint56::from_bytes([-1 as u8]);
+    let b = a.bits();
+
+    assert(b == 8);
+}
+
+#[test]
+fn test_bits4() {
+    let a = BigUint56::from_bytes([1, 5]);
+    let b = a.bits();
+
+    assert(b == 11);
+}
+
+// TODO: 
+// 1. I recognize that operations as implemented here are inefficient in the context of crypto libraries but it's a good start.
+// 2. The following would be the ideal implementation with a generic limb type `T`, but this doesn't seem possible in Noir yet.
+//  struct BigUint<T, LIMBS> {
+//      limbs : [T; LIMBS],
+//  }
+//
+//  impl<T, LIMBS> BigUint<T, LIMBS> {
+//      fn new(limbs: [T; LIMBS]) -> Self {
+//          Self {
+//              limbs
+//          }
+//      }
+//
+//      fn zero(zero: T) -> Self {
+//          Self {
+//              limbs: [zero; LIMBS]
+//          }
+//      }
+//  }
