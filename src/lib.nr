@@ -78,6 +78,12 @@ impl BigUint56 {
         (res, carry)
     }
 
+    // TODO: Check if carry is 0?
+    fn add_no_carry(self: Self, other: Self) -> Self {
+        let (res, _carry) = self.add(other);
+        res
+    }
+
     fn sub(self: Self, other: Self) -> (Self, u56) {
         let mut res = BigUint56::zero();
         let mut borrow = 0 as u56;
@@ -89,6 +95,11 @@ impl BigUint56 {
         };
         
         (res, borrow)
+    }
+
+    fn sub_no_borrow(self: Self, other: Self) -> Self {
+        let (res, _borrow) = self.sub(other);
+        res
     }
 
     fn mul(self: Self, other: Self) -> (Self, Self) {
@@ -224,42 +235,34 @@ impl BigUint56 {
         res
     }
 
-    // fn div(self: Self, other: Self) -> (Self, Self) {
-    //     assert(!other.is_zero());
+    // TODO: Use a more efficient algorithm. This is simple binary long division.
+    fn div(self: Self, other: Self) -> (Self, Self) {
+        assert(!other.is_zero());
 
-    //     let mb = other.bits();
-    //     let mut bd = MAX_BITS - mb;
-    //     let mut rem = self;
-    //     let mut quo = BigUint56::zero();
-    //     let mut c = other.shl(bd);
+        if self.lt(other) {
+            (BigUint56::zero(), self)
+        } else {
+            let mut rem = self;
+            let mut quo = BigUint56::zero();
 
-    //     while bd > 0 {
-    //         if rem >= c {
-    //             let (new_rem, _) = rem.sub(c);
-    //             rem = new_rem;
-    //             let (new_quo, _) = quo.shl(1);
-    //             quo = new_quo.add(BigUint56::one());
-    //         } else {
-    //             let (new_quo, _) = quo.shl(1);
-    //             quo = new_quo;
-    //         }
-    //         bd -= 1;
-    //         c = c.shr(1);
-    //     }
+            let bit_diff = self.bits() - other.bits();
+            let mut c = other.shl(bit_diff);
 
-    //     // Handle the last bit
-    //     if rem >= c {
-    //         let (new_rem, _) = rem.sub(c);
-    //         rem = new_rem;
-    //         let (new_quo, _) = quo.shl(1);
-    //         quo = new_quo.add(BigUint56::one());
-    //     } else {
-    //         let (new_quo, _) = quo.shl(1);
-    //         quo = new_quo;
-    //     }
+            for i in 0..MAX_BITS+1 {
+                if i as u56 <= bit_diff {
+                    if rem.gte(c) {
+                        rem = rem.sub_no_borrow(c);
+                        quo = quo.shl(1).add_no_carry(BigUint56::one());
+                    } else {
+                        quo = quo.shl(1);
+                    }
+                    c = c.shr(1);
+                }
+            };
 
-    //     (quo, rem)
-    // }
+            (quo, rem)
+        }
+    }
 
     // Returns true iff this number == other.
     fn eq(self: Self, other: Self) -> bool {
@@ -488,6 +491,14 @@ fn test_shl4() {
 }
 
 #[test]
+fn test_shl5() {
+    let a = BigUint56::from_bytes([1]);
+    let b = a.shl(1);
+
+    assert(b.eq(BigUint56::from_bytes([2])));
+}
+
+#[test]
 fn test_shr1() {
     let a = BigUint56::from_bytes([1, 2]);
     let b = a.shr(0);
@@ -558,9 +569,32 @@ fn test_bits4() {
     assert(b == 11);
 }
 
+#[test]
+fn test_div1() {
+    let a = BigUint56::from_bytes([7]);
+    let b = BigUint56::from_bytes([3]);
+
+    let (q, r) = a.div(b);
+
+    assert(q.eq(BigUint56::from_bytes([2])));
+    assert(r.eq(BigUint56::from_bytes([1])));
+}
+
+#[test]
+fn test_div2() {
+    let a = BigUint56::from_bytes([7]);
+    let b = BigUint56::from_bytes([1]);
+
+    let (q, r) = a.div(b);
+
+    assert(q.eq(BigUint56::from_bytes([7])));
+    assert(r.eq(BigUint56::from_bytes([0])));
+}
+
 // TODO: 
 // 1. I recognize that operations as implemented here are inefficient in the context of crypto libraries but it's a good start.
-// 2. The following would be the ideal implementation with a generic limb type `T`, but this doesn't seem possible in Noir yet.
+// 2. Remove `carry` from `add`, `sub`, `mul` and `div` and implement it in a separate function.
+// 3. The following would be the ideal implementation with a generic limb type `T`, but this doesn't seem possible in Noir yet.
 //  struct BigUint<T, LIMBS> {
 //      limbs : [T; LIMBS],
 //  }
@@ -577,4 +611,3 @@ fn test_bits4() {
 //              limbs: [zero; LIMBS]
 //          }
 //      }
-//  }
