@@ -1,12 +1,13 @@
 use dep::std::println;
 
 mod utils;
-// mod field_montgomery;
+mod field;
 
 global LIMB_BITS = 56;
 global LIMBS = 5;
 
-// TODO: Noir doesn't support const generic/global expressions so these are hardcoded
+// TODO: Noir doesn't support global expressions so these are hardcoded
+global MAX_BITS = 280; // LIMB_BITS * LIMBS
 global BYTES_PER_LIMB = 7; // LIMB_BITS / 8
 global MAX_BYTES = 35; // LIMBS * BYTES_PER_LIMB
 
@@ -162,43 +163,44 @@ impl BigUint56 {
     // Computes `self << shift` where `0 <= shift < Limb::BITS`,
     // returning the result and the carry.
     // TODO: Optimize for 0?
-    // fn shl_limb(self: Self, n: u56) -> (Self, u56) {
-    //     assert(n < LIMB_BITS);
+    fn shl_limb(self: Self, n: u56) -> (Self, u56) {
+        assert(n < LIMB_BITS);
 
-    //     let mut res = BigUint56::zero();
+        let mut res = BigUint56::zero();
 
-    //     let rshift = LIMB_BITS - n;
-    //     let carry = self.limbs[LIMBS - 1] >> rshift;
+        let rshift = LIMB_BITS - n;
+        let carry = self.limbs[LIMBS - 1] >> rshift;
 
-    //     for i in LIMBS-1..0 {
-    //         res.limbs[i] = (self.limbs[i] << n) | (self.limbs[i - 1] >> rshift);
-    //     }
-    //     res.limbs[0] = self.limbs[0] << n;
+        res.limbs[0] = self.limbs[0] << n;
+        for i in 1..LIMBS {
+            res.limbs[i] = (self.limbs[i] << n) | (self.limbs[i - 1] >> rshift);
+        // TODO: Bug, this doesn't work without the semi-colon.
+        };
 
-    //     (res, carry)
-    // }
+        (res, carry)
+    }
 
     // Computes `self << shift`.
     // TODO: Should n be BigUint56?
-    // fn shl(self: Self, n: u56) -> Self {
-    //     let mut res = BigUint56::zero();
+    fn shl(self: Self, n: u56) -> Self {
+        let mut res = BigUint56::zero();
 
-    //     if n < LIMB_BITS * (LIMBS as u56) {
-    //         let shift_num = n / LIMB_BITS;
-    //         let rem = n % LIMB_BITS;
+        if n < MAX_BITS {
+            let shift_num = n / LIMB_BITS;
+            let rem = n % LIMB_BITS;
 
-    //         for i in 0..LIMBS {
-    //             if i as u56 >= shift_num {
-    //                 res.limbs[i] = self.limbs[i - shift_num as Field];
-    //             }
-    //         }
+            for i in 0..LIMBS {
+                if i as u56 >= shift_num {
+                    res.limbs[i] = self.limbs[i - shift_num as Field];
+                }
+            }
 
-    //         let (new_lower, _carry) = res.shl_limb(rem);
-    //         res = new_lower;
-    //     }
+            let (new_lower, _carry) = res.shl_limb(rem);
+            res = new_lower;
+        }
 
-    //     res
-    // }
+        res
+    }
 
     // fn div(self: Self, other: Self) -> (Self, Self) {
     //     assert(!other.is_zero());
@@ -376,14 +378,43 @@ fn test_cmp2() {
     assert(!a.gt(b));
 }
 
-// #[test]
-// fn test_shl() {
-//     let a = BigUint56::new([1, 2]);
-//     let b = a.shl(126);
+#[test]
+fn test_shl1() {
+    let a = BigUint56::from_bytes([1, 2]);
+    let b = a.shl(0);
 
-//     let l = b.limbs;
-//     println(l);
-// }
+    assert(a.eq(b));
+}
+
+#[test]
+fn test_shl2() {
+    let a = BigUint56::from_bytes([1, 2]);
+    let b = a.shl(MAX_BITS);
+
+    assert(b.is_zero());
+}
+
+#[test]
+fn test_shl3() {
+    let a = BigUint56::from_bytes([1, 2]);
+    let b = a.shl(1);
+
+    let bytes = b.to_bytes();
+
+    let mut expected = [0 as u8; MAX_BYTES];
+    expected[0] = 2;
+    expected[1] = 4;
+
+    assert(bytes == expected);
+}
+
+#[test]
+fn test_shl4() {
+    let a = BigUint56::from_bytes([1, 2]);
+    let b = a.shl(8);
+
+    assert(b.eq(BigUint56::from_bytes([0, 1, 2])));
+}
 
 // TODO: The following would be the ideal implementation with a generic limb type `T`, but this doesn't seem possible in Noir yet.
 // struct BigUint<T, LIMBS> {
