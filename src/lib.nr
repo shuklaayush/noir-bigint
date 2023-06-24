@@ -117,49 +117,6 @@ impl BigUint56 {
         (lo, hi)
     }
 
-    // Returns true iff this number == other.
-    fn eq(self: Self, other: Self) -> bool {
-        let mut is_eq = true;
-        let mut done = false;
-        for i in 0..LIMBS {
-            // TODO: Compare constraints with
-            // is_eq = is_eq & (self.limbs[i] == other.limbs[i]);
-            if (!done) {
-                if self.limbs[i] != other.limbs[i] {
-                    is_eq = false;
-                    done = true;
-                }
-            }
-        }
-        is_eq
-    }
-
-    // Returns true iff this number >= other.
-    fn gte(self: Self, other: Self) -> bool {
-        let (_diff, borrow) = self.sub(other);
-        borrow == 0
-    }
-
-    // Returns true iff this number > other.
-    fn gt(self: Self, other: Self) -> bool {
-        let (diff, borrow) = self.sub(other);
-        (borrow == 0) & !diff.eq(BigUint56::zero())
-    }
-
-    // Returns true iff this number <= other.
-    fn lte(self: Self, other: Self) -> bool {
-        other.gte(self)
-    }
-
-    // Returns true iff this number < other.
-    fn lt(self: Self, other: Self) -> bool {
-        other.gt(self)
-    }
-
-    fn is_zero(self: Self) -> bool {
-        self.eq(BigUint56::zero())
-    }
-
     // Computes `self << shift` where `0 <= shift < Limb::BITS`,
     // returning the result and the carry.
     // TODO: Optimize for 0?
@@ -202,36 +159,136 @@ impl BigUint56 {
         res
     }
 
+    // TODO: 
+    //      1. Optimize for 0?
+    //      2. Combine with shr since there is no carry?
+    fn shr_limb(self: Self, n: u56) -> Self {
+        assert(n < LIMB_BITS);
+
+        let mut res = BigUint56::zero();
+        let lshift = LIMB_BITS - n;
+
+        for i in 0..LIMBS-1 {
+            res.limbs[i] = (self.limbs[i] >> n) | (self.limbs[i + 1] << lshift);
+        }
+        res.limbs[LIMBS - 1] = self.limbs[LIMBS - 1] >> n;
+
+        res
+    }
+
+    // TODO: Should n be BigUint56?
+    fn shr(self: Self, n: u56) -> Self {
+        let mut res = BigUint56::zero();
+
+        if n < MAX_BITS {
+            let shift_num = n / LIMB_BITS;
+            let rem = n % LIMB_BITS;
+
+            for i in 0..LIMBS {
+                if i as u56 + shift_num < LIMBS as u56 {
+                    res.limbs[i] = self.limbs[i + shift_num as Field];
+                }
+            }
+
+            res = res.shr_limb(rem);
+        }
+
+        res
+    }
+
+    // fn bits_vartime(self: Self) -> u56 {
+    //     let mut res = MAX_BITS;
+    //     while res > 0 && self.bit(res - 1) == 0 {
+    //         res -= 1;
+    //     }
+    //     res
+    // }
+
+    // fn bit(self: Self, index: u56) -> u56 {
+    //     assert(index < MAX_BITS);
+    //     let limb = self.limbs[index / LIMB_BITS];
+    //     (limb >> (index % LIMB_BITS)) & 1
+    // }
+
     // fn div(self: Self, other: Self) -> (Self, Self) {
     //     assert(!other.is_zero());
 
     //     let mb = other.bits_vartime();
-    //     let mut bd = Self::BITS - mb;
-    //     let mut rem = *self;
-    //     let mut quo = Self::ZERO;
-    //     let mut c = other.shl_vartime(bd);
+    //     let mut bd = MAX_BITS - mb;
+    //     let mut rem = self;
+    //     let mut quo = BigUint56::zero();
+    //     let mut c = other.shl(bd);
 
     //     while bd > 0 {
     //         if rem >= c {
-    //             rem = rem - c;
-    //             quo = (quo << 1) | Self::ONE;
+    //             let (new_rem, _) = rem.sub(c);
+    //             rem = new_rem;
+    //             let (new_quo, _) = quo.shl(1);
+    //             quo = new_quo.add(BigUint56::one());
     //         } else {
-    //             quo = quo << 1;
+    //             let (new_quo, _) = quo.shl(1);
+    //             quo = new_quo;
     //         }
     //         bd -= 1;
-    //         c = c >> 1;
+    //         c = c.shr(1);
     //     }
 
     //     // Handle the last bit
     //     if rem >= c {
-    //         rem = rem - c;
-    //         quo = (quo << 1) | Self::ONE;
+    //         let (new_rem, _) = rem.sub(c);
+    //         rem = new_rem;
+    //         let (new_quo, _) = quo.shl(1);
+    //         quo = new_quo.add(BigUint56::one());
     //     } else {
-    //         quo = quo << 1;
+    //         let (new_quo, _) = quo.shl(1);
+    //         quo = new_quo;
     //     }
 
     //     (quo, rem)
     // }
+
+    // Returns true iff this number == other.
+    fn eq(self: Self, other: Self) -> bool {
+        let mut is_eq = true;
+        let mut done = false;
+        for i in 0..LIMBS {
+            // TODO: Compare constraints with
+            // is_eq = is_eq & (self.limbs[i] == other.limbs[i]);
+            if (!done) {
+                if self.limbs[i] != other.limbs[i] {
+                    is_eq = false;
+                    done = true;
+                }
+            }
+        }
+        is_eq
+    }
+
+    // Returns true iff this number >= other.
+    fn gte(self: Self, other: Self) -> bool {
+        let (_diff, borrow) = self.sub(other);
+        borrow == 0
+    }
+
+    // Returns true iff this number > other.
+    fn gt(self: Self, other: Self) -> bool {
+        let (diff, borrow) = self.sub(other);
+        (borrow == 0) & !diff.eq(BigUint56::zero())
+    }
+
+    // Returns true iff this number <= other.
+    fn lte(self: Self, other: Self) -> bool {
+        other.gte(self)
+    }
+
+    // Returns true iff this number < other.
+    fn lt(self: Self, other: Self) -> bool {
+        other.gt(self)
+    }
+
+    fn is_zero(self: Self) -> bool {
+        self.eq(BigUint56::zero())
+    }
 
     // // Returns self + other % modulus.
     // // fn add_mod(self : Self, other : Self, modulus : Self)
@@ -414,6 +471,44 @@ fn test_shl4() {
     let b = a.shl(8);
 
     assert(b.eq(BigUint56::from_bytes([0, 1, 2])));
+}
+
+#[test]
+fn test_shr1() {
+    let a = BigUint56::from_bytes([1, 2]);
+    let b = a.shr(0);
+
+    assert(a.eq(b));
+}
+
+#[test]
+fn test_shr2() {
+    let a = BigUint56::from_bytes([1, 2]);
+    let b = a.shr(MAX_BITS);
+
+    assert(b.is_zero());
+}
+
+#[test]
+fn test_shr3() {
+    let a = BigUint56::from_bytes([2, 4]);
+    let b = a.shr(1);
+
+    let bytes = b.to_bytes();
+
+    let mut expected = [0 as u8; MAX_BYTES];
+    expected[0] = 1;
+    expected[1] = 2;
+
+    assert(bytes == expected);
+}
+
+#[test]
+fn test_shr4() {
+    let a = BigUint56::from_bytes([0, 1, 2]);
+    let b = a.shr(8);
+
+    assert(b.eq(BigUint56::from_bytes([1, 2])));
 }
 
 // TODO: The following would be the ideal implementation with a generic limb type `T`, but this doesn't seem possible in Noir yet.
