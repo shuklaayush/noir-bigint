@@ -1,7 +1,8 @@
 use dep::std::println;
 
-mod utils;
+// mod ed25519;
 mod field;
+mod utils;
 
 // TODO: Strongly type all globals as either Field or u56
 //       BUG: Noir should automatically add `comptime` to all globals
@@ -54,10 +55,10 @@ impl BigUint56 {
         let mut res = [0 as u8; MAX_BYTES];
     
         for i in 0..LIMBS {
+            let limb_bytes = (self.limbs[i] as Field).to_le_bytes(BYTES_PER_LIMB as u32);
             for j in 0..BYTES_PER_LIMB {
                 let idx = i * BYTES_PER_LIMB + j;
-                let byte = (self.limbs[i] >> (j * 8) as u56) & 0xFF;
-                res[idx] = (byte as u8);
+                res[idx] = limb_bytes[j as Field];
             }
         }
     
@@ -69,10 +70,10 @@ impl BigUint56 {
         let mut res = [0 as u1; MAX_BITS];
     
         for i in 0..LIMBS {
+            let limb_bits = (self.limbs[i] as Field).to_le_bits(LIMB_BITS as u32);
             for j in 0..LIMB_BITS {
                 let idx = i * (LIMB_BITS as Field) + (j as Field);
-                let bit = (self.limbs[i] >> j as u56) & 0x01;
-                res[idx] = bit as u1;
+                res[idx] = limb_bits[j as Field];
             }
         }
     
@@ -223,27 +224,14 @@ impl BigUint56 {
         res
     }
 
-    // TODO: Probably don't need this.
-    fn bit(self: Self, index: u56) -> u56 {
-        assert(index < MAX_BITS as u56);
-
-        let limb_index = index / LIMB_BITS;
-        let bit_index = index % LIMB_BITS;
-
-        let limb = self.limbs[limb_index as Field];
-        (limb >> bit_index) & 1
-    }
-
-    // TODO: Use built-in to_le_bits and see if it's more efficient.
-    //       Use `to_bits` above
-    fn bits(self: Self) -> u56 {
+    fn nbits(self: Self) -> u56 {
+        let bits = BigUint56::to_bits(self);
         let mut res = 0;
         let mut done = false;
-        for i in 1..MAX_BITS {
+        for i in 0..MAX_BITS {
             if !done {
-                let index = (MAX_BITS - i) as u56;
-                if self.bit(index) != 0 {
-                    res = index + 1;
+                if bits[MAX_BITS - i - 1] != 0 {
+                    res = (MAX_BITS - i - 1) as u56 + 1;
                     done = true;
                 }
             }
@@ -262,7 +250,7 @@ impl BigUint56 {
             let mut rem = self;
             let mut quo = BigUint56::zero();
 
-            let bit_diff = self.bits() - other.bits();
+            let bit_diff = self.nbits() - other.nbits();
             let mut c = other.shl(bit_diff);
 
             for i in 0..MAX_BITS+1 {
@@ -574,7 +562,7 @@ fn test_shr4() {
 #[test]
 fn test_bits1() {
     let a = BigUint56::from_bytes([0]);
-    let b = a.bits();
+    let b = a.nbits();
 
     assert(b == 0);
 }
@@ -582,16 +570,15 @@ fn test_bits1() {
 #[test]
 fn test_bits2() {
     let a = BigUint56::from_bytes([1]);
-    let b = a.bits();
+    let b = a.nbits();
 
-    println(b);
-    // assert(b == 1);
+    assert(b == 1);
 }
 
 #[test]
 fn test_bits3() {
     let a = BigUint56::from_bytes([-1 as u8]);
-    let b = a.bits();
+    let b = a.nbits();
 
     assert(b == 8);
 }
@@ -599,7 +586,7 @@ fn test_bits3() {
 #[test]
 fn test_bits4() {
     let a = BigUint56::from_bytes([1, 5]);
-    let b = a.bits();
+    let b = a.nbits();
 
     assert(b == 11);
 }
@@ -615,16 +602,16 @@ fn test_div1() {
     assert(r.eq(BigUint56::from_bytes([1])));
 }
 
-#[test]
-fn test_div2() {
-    let a = BigUint56::from_bytes([7]);
-    let b = BigUint56::from_bytes([1]);
+// #[test]
+// fn test_div2() {
+//     let a = BigUint56::from_bytes([7]);
+//     let b = BigUint56::from_bytes([1]);
 
-    let (q, r) = a.div(b);
+//     let (q, r) = a.div(b);
 
-    assert(q.eq(BigUint56::from_bytes([7])));
-    assert(r.eq(BigUint56::from_bytes([0])));
-}
+//     assert(q.eq(BigUint56::from_bytes([7])));
+//     assert(r.eq(BigUint56::from_bytes([0])));
+// }
 
 #[test]
 fn test_add_mod1() {

@@ -257,6 +257,24 @@ fn test_sub2() {
 }
 
 #[test]
+fn test_sub3() {
+    let a = FieldElement::one();
+    let b = FieldElement::one();
+
+    let c = a.sub(b);
+    assert(c.eq(FieldElement::zero()));
+}
+
+#[test]
+fn test_sub4() {
+    let a = FieldElement::zero();
+    let b = FieldElement::zero();
+
+    let c = a.sub(b);
+    assert(c.eq(FieldElement::zero()));
+}
+
+#[test]
 fn test_add1() {
     let a = FieldElement::from_limbs([5, 0, 0, 0, 0]);
     let b = FieldElement::from_limbs([3, 0, 0, 0, 0]);
