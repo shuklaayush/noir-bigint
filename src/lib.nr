@@ -4,7 +4,8 @@ mod utils;
 mod field;
 
 // TODO: Strongly type all globals as either Field or u56
-global LIMB_BITS = 56;
+//       BUG: Noir should automatically add `comptime` to all globals
+global LIMB_BITS: comptime u56 = 56;
 global LIMBS = 5;
 
 // TODO: Noir doesn't support global expressions so these are hardcoded
@@ -18,15 +19,11 @@ struct BigUint56 {
 
 impl BigUint56 {
     fn new(limbs: [u56; LIMBS]) -> Self {
-        Self {
-            limbs
-        }
+        Self { limbs }
     }
 
     fn zero() -> Self {
-        Self {
-            limbs: [0 as u56; LIMBS]
-        }
+        Self { limbs: [0 as u56; LIMBS] }
     }
 
     fn one() -> Self {
