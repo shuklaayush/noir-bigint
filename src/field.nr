@@ -1,6 +1,6 @@
 use dep::std::println;
 
-use crate::{BigUint56, LIMBS, LIMB_BITS, MAX_BYTES, utils};
+use crate::{BigUint56, LIMBS, LIMB_BITS, MAX_BITS, MAX_BYTES, utils};
 
 // Field element
 struct FieldElement {
@@ -39,6 +39,14 @@ impl FieldElement {
         // (a.R) / R = a
         let tmp = FieldElement::montgomery_reduce([self.val.limbs[0], self.val.limbs[1], self.val.limbs[2], self.val.limbs[3], self.val.limbs[4], 0, 0, 0, 0, 0]);
         tmp.val.to_bytes()
+    }
+
+    // Converts a field element into a bit representation
+    fn to_bits(self: Self) -> [u1; MAX_BITS] {
+        // Turn into canonical form by computing
+        // (a.R) / R = a
+        let tmp = FieldElement::montgomery_reduce([self.val.limbs[0], self.val.limbs[1], self.val.limbs[2], self.val.limbs[3], self.val.limbs[4], 0, 0, 0, 0, 0]);
+        tmp.val.to_bits()
     }
 
     // Returns zero, the additive identity.

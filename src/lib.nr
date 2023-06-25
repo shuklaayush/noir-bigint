@@ -5,8 +5,9 @@ mod field;
 
 // TODO: Strongly type all globals as either Field or u56
 //       BUG: Noir should automatically add `comptime` to all globals
+//       Rename to BITS_PER_LIMB? Change to Field?
 global LIMB_BITS: comptime u56 = 56;
-global LIMBS = 5;
+global LIMBS: comptime Field = 5;
 
 // TODO: Noir doesn't support global expressions so these are hardcoded
 global MAX_BITS: Field = 280; // LIMB_BITS * LIMBS
@@ -48,6 +49,7 @@ impl BigUint56 {
         res
     }
 
+    // TODO: Use builtin `to_le_bytes`?
     fn to_bytes(self: Self) -> [u8; MAX_BYTES] {
         let mut res = [0 as u8; MAX_BYTES];
     
@@ -56,6 +58,21 @@ impl BigUint56 {
                 let idx = i * BYTES_PER_LIMB + j;
                 let byte = (self.limbs[i] >> (j * 8) as u56) & 0xFF;
                 res[idx] = (byte as u8);
+            }
+        }
+    
+        res
+    }
+
+    // TODO: Use builtin `to_le_bits`?
+    fn to_bits(self: Self) -> [u1; MAX_BITS] {
+        let mut res = [0 as u1; MAX_BITS];
+    
+        for i in 0..LIMBS {
+            for j in 0..LIMB_BITS {
+                let idx = i * (LIMB_BITS as Field) + (j as Field);
+                let bit = (self.limbs[i] >> j as u56) & 0x01;
+                res[idx] = bit as u1;
             }
         }
     
@@ -206,6 +223,7 @@ impl BigUint56 {
         res
     }
 
+    // TODO: Probably don't need this.
     fn bit(self: Self, index: u56) -> u56 {
         assert(index < MAX_BITS as u56);
 
@@ -217,6 +235,7 @@ impl BigUint56 {
     }
 
     // TODO: Use built-in to_le_bits and see if it's more efficient.
+    //       Use `to_bits` above
     fn bits(self: Self) -> u56 {
         let mut res = 0;
         let mut done = false;
@@ -353,6 +372,15 @@ fn test_to_bytes1() {
 
     let c = a.sub(b);
     assert(c.to_bytes() == [-1 as u8; MAX_BYTES]);
+}
+
+#[test]
+fn test_to_bits1() {
+    let a = BigUint56::zero();
+    let b = BigUint56::one();
+
+    let c = a.sub(b);
+    assert(c.to_bits() == [1 as u1; MAX_BITS]);
 }
 
 #[test]
@@ -611,7 +639,9 @@ fn test_add_mod1() {
 // TODO: 
 // 1. The operations as implemented here are inefficient in the context of crypto libraries but it's a good start.
 // 2. Remove `carry` from `add`, `sub`, `mul` and `div` and implement it in a separate function.
-// 3. The following would be the ideal implementation with a generic limb type `T`, but this doesn't seem possible in Noir yet.
+// 3. Remove unnecessary ::new constructors.
+//
+// 4. The following would be the ideal implementation with a generic limb type `T`, but this doesn't seem possible in Noir yet.
 //  struct BigUint<T, LIMBS> {
 //      limbs : [T; LIMBS],
 //  }
