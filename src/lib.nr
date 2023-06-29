@@ -1,4 +1,3 @@
-use dep::std::println;
 mod utils;
 
 // BUG: Noir doesn't automatically add `comptime` to all globals, hence strongly typed
