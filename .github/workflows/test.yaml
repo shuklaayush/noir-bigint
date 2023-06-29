@@ -13,12 +13,10 @@ jobs:
 
     steps:
       - name: Install noirup
-        run: |
-          curl -L https://raw.githubusercontent.com/noir-lang/noirup/main/install | bash
-          export PATH=$PATH:$HOME/.nargo/bin
+        run: curl -L https://raw.githubusercontent.com/noir-lang/noirup/main/install | bash
 
       - name: Install noir nightly
-        run: noirup -n
+        run: ~/.nargo/bin/noirup -n
 
       - name: Run tests
-        run: nargo test
+        run: ~/.nargo/bin/nargo test
