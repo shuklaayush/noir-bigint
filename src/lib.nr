@@ -670,7 +670,3 @@ fn test_add_mod1() {
     let d = a.add_mod(b, c);
     assert(d.eq(BigUint56::from_bytes([4])));
 }
-
-// References:
-// 1. https://github.com/rust-num/num-bigint
-// 2. https://github.com/RustCrypto/crypto-bigint
