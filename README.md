@@ -21,9 +21,23 @@ In your `Nargo.toml` file, add the following dependency:
 noir_bigint = { tag = "v0.0.1", git = "https://github.com/shuklaayush/noir-bigint" }
 ```
 
-## TODOs
+## Testing
 
-- Make division more efficient 
+Tests are run using [`nargo`](https://noir-lang.org/dev/getting_started/nargo_installation/):
+
+```bash
+nargo test
+```
+
+All tests are run as part of the CI pipeline [`test.yaml`](./.github/workflows/test.yaml).
+
+## Contributing
+
+Contributions are welcome! Please adhere to the following guidelines:
+
+- Open a pull request with a clear description of your changes.
+- Changes should aim to improve code efficiency or readability.
+- Add appropriate tests, ensuring all pass before submission.
 
 ## Acknowledgements
 
