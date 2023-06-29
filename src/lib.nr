@@ -1,4 +1,5 @@
 mod utils;
+mod prime_field;
 
 // BUG: Noir doesn't automatically add `comptime` to all globals, hence strongly typed
 // Number of bits per limb.
