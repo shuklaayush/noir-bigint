@@ -5,10 +5,10 @@
 
 This library provides a custom `BigUint56` data type which allows for computations on large unsigned integers. The integers are represented with a fixed number of limbs, each of which is a 56-bit unsigned integer. 
 
-We utilize `u56`` limbs for two primary reasons:
+We utilize `u56` limbs for two primary reasons:
 
 1. 56 is divisible by 8 which simplifies conversions between bytes and bits.
-2. Multiplication requires a double width intermediate value and u112 is the maximum double width value that can be represented in Noir.
+2. Multiplication requires a double width intermediate value and `u112` is the maximum double width value that can be represented in Noir.
 
 This library provides various functionalities such as arithmetic operations (addition, subtraction, multiplication, division), bitwise operations (left shift, right shift), comparisons and conversions (to bytes, to bits). 
 
