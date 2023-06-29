@@ -3,8 +3,6 @@ mod utils;
 // BUG: Noir doesn't automatically add `comptime` to all globals, hence strongly typed
 // Number of bits per limb.
 global BITS_PER_LIMB: comptime Field = 56;
-// Number of limbs.
-global NUM_LIMBS: comptime Field = 5;
 // Noir doesn't support expressions on globals so these are hardcoded
 // Number of bytes per limb.
 global BYTES_PER_LIMB: comptime Field = 7; // BITS_PER_LIMB / 8
@@ -18,16 +16,16 @@ global MAX_BYTES: comptime Field = 35; // NUM_LIMBS * BYTES_PER_LIMB
 // 1. 56 is divisible by 8 which makes to/from bytes easier
 // 2. Multiplication requires a double width intermediate value and u112 is the maximum
 //    double width value that can be represented in Noir
-struct BigUint56 {
+struct BigUint56<NUM_LIMBS> {
     limbs: [u56; NUM_LIMBS],
 }
-// The ideal implementation would be with a generic limb type `T`, but Noir 
-// doesn't support const generics so this is non-trivial to implement.
+// The ideal implementation would be with a generic limb type `T`, but that 
+// is non-trivial to implement in Noir.
 //  struct BigUint<T, NUM_LIMBS> {
 //      limbs : [T; NUM_LIMBS],
 //  }
 
-impl BigUint56 {
+impl<NUM_LIMBS> BigUint56<NUM_LIMBS> {
     // Returns zero as BigUint56.
     fn zero() -> Self {
         Self { limbs: [0 as u56; NUM_LIMBS] }
@@ -359,6 +357,20 @@ impl BigUint56 {
 }
 
 #[test]
+fn test_generic1() {
+    let a = BigUint56{ limbs: [-1 as u56] };
+    let len = a.limbs.len();
+    assert(len == 1);
+}
+
+#[test]
+fn test_generic2() {
+    let a = BigUint56{ limbs: [-1 as u56; 5] };
+    let len = a.limbs.len();
+    assert(len == 5);
+}
+
+#[test]
 fn test_from_bytes1() {
     let bytes = [2 as u8];
     let a = BigUint56::from_bytes(bytes);
@@ -381,7 +393,7 @@ fn test_from_bytes3() {
 
 #[test]
 fn test_to_bytes1() {
-    let a = BigUint56::zero();
+    let a: BigUint56<5> = BigUint56::zero();
     let b = BigUint56::one();
 
     let c = a.sub(b);
@@ -390,7 +402,7 @@ fn test_to_bytes1() {
 
 #[test]
 fn test_to_bits1() {
-    let a = BigUint56::zero();
+    let a: BigUint56<5> = BigUint56::zero();
     let b = BigUint56::one();
 
     let c = a.sub(b);
@@ -399,7 +411,7 @@ fn test_to_bits1() {
 
 #[test]
 fn test_add1() {
-    let a = BigUint56::from_bytes([1]);
+    let a: BigUint56<5> = BigUint56::from_bytes([1]);
     let b = BigUint56::from_bytes([2]);
     let sum = a.add(b);
 
@@ -417,7 +429,7 @@ fn test_add2() {
 
 #[test]
 fn test_adc1() {
-    let a = BigUint56{ limbs: [-1 as u56; NUM_LIMBS] };
+    let a = BigUint56{ limbs: [-1 as u56; 5] };
     let b = BigUint56::one();
     let (sum, carry) = a.adc(b);
 
@@ -427,7 +439,7 @@ fn test_adc1() {
 
 #[test]
 fn test_sub1() {
-    let a = BigUint56::from_bytes([5]);
+    let a: BigUint56<5> = BigUint56::from_bytes([5]);
     let b = BigUint56::from_bytes([3]);
     let diff = a.sub(b);
 
@@ -455,7 +467,7 @@ fn test_sbb1() {
 
 #[test]
 fn test_mul1() {
-    let a = BigUint56::from_bytes([2]);
+    let a: BigUint56<5> = BigUint56::from_bytes([2]);
     let b = BigUint56::from_bytes([3]);
     let (lo, hi) = a.mul(b);
 
@@ -475,7 +487,7 @@ fn test_mul2() {
 
 #[test]
 fn test_cmp1() {
-    let a = BigUint56::from_bytes([2, 0]);
+    let a: BigUint56<5> = BigUint56::from_bytes([2, 0]);
     let b = BigUint56::from_bytes([0, 2]);
 
     assert(!a.eq(b));
@@ -489,7 +501,7 @@ fn test_cmp1() {
 
 #[test]
 fn test_cmp2() {
-    let a = BigUint56::from_bytes([0, 2]);
+    let a: BigUint56<5> = BigUint56::from_bytes([0, 2]);
     let b = BigUint56::from_bytes([0, 2]);
 
     assert(a.eq(b));
@@ -503,7 +515,7 @@ fn test_cmp2() {
 
 #[test]
 fn test_shl1() {
-    let a = BigUint56::from_bytes([1, 2]);
+    let a: BigUint56<5> = BigUint56::from_bytes([1, 2]);
     let b = a.shl(0);
 
     assert(a.eq(b));
@@ -511,7 +523,7 @@ fn test_shl1() {
 
 #[test]
 fn test_shl2() {
-    let a = BigUint56::from_bytes([1, 2]);
+    let a: BigUint56<5> = BigUint56::from_bytes([1, 2]);
     let b = a.shl(MAX_BITS as u56);
 
     assert(b.is_zero());
@@ -519,7 +531,7 @@ fn test_shl2() {
 
 #[test]
 fn test_shl3() {
-    let a = BigUint56::from_bytes([1, 2]);
+    let a: BigUint56<5> = BigUint56::from_bytes([1, 2]);
     let b = a.shl(1);
 
     let bytes = b.to_bytes();
@@ -533,7 +545,7 @@ fn test_shl3() {
 
 #[test]
 fn test_shl4() {
-    let a = BigUint56::from_bytes([1, 2]);
+    let a: BigUint56<5> = BigUint56::from_bytes([1, 2]);
     let b = a.shl(8);
 
     assert(b.eq(BigUint56::from_bytes([0, 1, 2])));
@@ -541,7 +553,7 @@ fn test_shl4() {
 
 #[test]
 fn test_shl5() {
-    let a = BigUint56::from_bytes([1]);
+    let a: BigUint56<5> = BigUint56::from_bytes([1]);
     let b = a.shl1();
 
     assert(b.eq(BigUint56::from_bytes([2])));
@@ -549,7 +561,7 @@ fn test_shl5() {
 
 #[test]
 fn test_shr1() {
-    let a = BigUint56::from_bytes([1, 2]);
+    let a: BigUint56<5> = BigUint56::from_bytes([1, 2]);
     let b = a.shr(0);
 
     assert(a.eq(b));
@@ -557,7 +569,7 @@ fn test_shr1() {
 
 #[test]
 fn test_shr2() {
-    let a = BigUint56::from_bytes([1, 2]);
+    let a: BigUint56<5> = BigUint56::from_bytes([1, 2]);
     let b = a.shr(MAX_BITS as u56);
 
     assert(b.is_zero());
@@ -565,7 +577,7 @@ fn test_shr2() {
 
 #[test]
 fn test_shr3() {
-    let a = BigUint56::from_bytes([2, 4]);
+    let a: BigUint56<5> = BigUint56::from_bytes([2, 4]);
     let b = a.shr1();
 
     let bytes = b.to_bytes();
@@ -579,7 +591,7 @@ fn test_shr3() {
 
 #[test]
 fn test_shr4() {
-    let a = BigUint56::from_bytes([0, 1, 2]);
+    let a: BigUint56<5> = BigUint56::from_bytes([0, 1, 2]);
     let b = a.shr(8);
 
     assert(b.eq(BigUint56::from_bytes([1, 2])));
@@ -587,7 +599,7 @@ fn test_shr4() {
 
 #[test]
 fn test_bits1() {
-    let a = BigUint56::from_bytes([0]);
+    let a: BigUint56<5> = BigUint56::from_bytes([0]);
     let b = a.nbits();
 
     assert(b == 0);
@@ -595,7 +607,7 @@ fn test_bits1() {
 
 #[test]
 fn test_bits2() {
-    let a = BigUint56::from_bytes([1]);
+    let a: BigUint56<5> = BigUint56::from_bytes([1]);
     let b = a.nbits();
 
     assert(b == 1);
@@ -603,7 +615,7 @@ fn test_bits2() {
 
 #[test]
 fn test_bits3() {
-    let a = BigUint56::from_bytes([-1 as u8]);
+    let a: BigUint56<5> = BigUint56::from_bytes([-1 as u8]);
     let b = a.nbits();
 
     assert(b == 8);
@@ -611,7 +623,7 @@ fn test_bits3() {
 
 #[test]
 fn test_bits4() {
-    let a = BigUint56::from_bytes([1, 5]);
+    let a: BigUint56<5> = BigUint56::from_bytes([1, 5]);
     let b = a.nbits();
 
     assert(b == 11);
@@ -619,7 +631,7 @@ fn test_bits4() {
 
 #[test]
 fn test_div1() {
-    let a = BigUint56::from_bytes([7]);
+    let a: BigUint56<5> = BigUint56::from_bytes([7]);
     let b = BigUint56::from_bytes([3]);
 
     let (q, r) = a.div(b);
@@ -630,7 +642,7 @@ fn test_div1() {
 
 #[test]
 fn test_div2() {
-    let a = BigUint56::from_bytes([7]);
+    let a: BigUint56<5> = BigUint56::from_bytes([7]);
     let b = BigUint56::from_bytes([8]);
 
     let (q, r) = a.div(b);
@@ -652,7 +664,7 @@ fn test_div3() {
 
 #[test]
 fn test_div4() {
-    let a = BigUint56::from_bytes([7]);
+    let a: BigUint56<5> = BigUint56::from_bytes([7]);
     let b = BigUint56::from_bytes([1]);
 
     let (q, r) = a.div(b);
@@ -663,7 +675,7 @@ fn test_div4() {
 
 #[test]
 fn test_add_mod1() {
-    let a = BigUint56::from_bytes([2]);
+    let a: BigUint56<5> = BigUint56::from_bytes([2]);
     let b = BigUint56::from_bytes([7]);
     let c = BigUint56::from_bytes([5]);
 
