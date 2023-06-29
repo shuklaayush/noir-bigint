@@ -1,0 +1,25 @@
+name: test
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  nargo:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install noirup
+        run: curl -L https://raw.githubusercontent.com/noir-lang/noirup/main/install | bash
+
+      - name: Install noir nightly
+        run: ~/.nargo/bin/noirup -n
+
+      - name: Run tests
+        run: ~/.nargo/bin/nargo test
