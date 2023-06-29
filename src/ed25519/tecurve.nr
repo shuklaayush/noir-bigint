@@ -1,0 +1,181 @@
+use dep::std::println;
+
+use crate::ed25519::fp::PrimeField as Fp;
+use crate::ed25519::fq::PrimeField as Fq;
+
+// Point in extended twisted Edwards coordinates
+struct Point {
+    x: Fp,
+    y: Fp,
+    t: Fp,
+    z: Fp
+}
+
+// Curve specification
+struct Curve { // Twisted Edwards curve
+    // Coefficients in defining equation a(x^2 + y^2)z^2 = z^4 + dx^2y^2
+    a: Fp,
+    d: Fp,
+    // Generator as point in projective coordinates
+    gen: Point
+}
+
+impl Point {
+    // Point constructor
+    fn new(x: Fp, y: Fp, t: Fp, z: Fp) -> Self {
+        Self {x, y, t, z}
+    }
+
+    fn from_affine(x: Fp, y: Fp) -> Self {
+        Self {x, y, t: x.mul(y), z: Fp::one()}
+    }
+
+    // Check for equality
+    fn eq(self, p: Point) -> bool {
+        let Self {x: x1, y: y1, t: _t1, z: z1} = self;
+        let Self {x: x2, y: y2, t: _t2, z:z2} = p;
+
+        x1.mul(z2).eq(x2.mul(z1)) & y1.mul(z2).eq(y2.mul(z1))
+    }
+
+    // Check if zero
+    fn is_zero(self) -> bool {
+        let Self {x, y, t: _t, z} = self;
+
+        x.is_zero() & y.eq(z)
+    }
+
+    // Additive identity
+    fn zero() -> Self {
+        Point::new(Fp::zero(), Fp::one(), Fp::zero(), Fp::one())
+    }
+
+    // Negation
+    fn negate(self) -> Self {
+        let Self {x, y, t, z} = self;
+
+        Point::new(x.neg(), y, t.neg(), z)
+    }
+}
+
+
+impl Curve {
+    // Curve constructor
+    fn new(a: Fp, d: Fp, gen: Point) -> Curve {
+        // Check curve coefficients
+        assert(!a.is_zero());
+        assert(!d.is_zero());
+        assert(!a.eq(d));
+        
+        let curve = Curve { a, d, gen };
+
+        // gen should be on the curve
+        assert(curve.contains(gen));
+
+        curve
+    }
+
+    // Membership check
+    fn contains(self, p: Point) -> bool {
+        let Point {x, y, t, z} = p;
+
+        if z.is_zero() | !z.mul(t).eq(x.mul(y)) {
+            false
+        } else {
+            let zz = z.mul(z);
+            let xx = x.mul(x);
+            let yy = y.mul(y);
+
+            zz.mul(self.a.mul(xx).add(yy)).eq(zz.mul(zz).add(self.d.mul(xx).mul(yy)))
+        }
+    }
+
+    // Point addition
+    fn add(self, p1: Point, p2: Point) -> Point {
+        let Point{x: x1, y: y1, t: t1, z: z1} = p1;
+        let Point{x: x2, y: y2, t: t2, z: z2} = p2;
+
+        let a = x1.mul(x2);
+        let b = y1.mul(y2);
+        let c = self.d.mul(t1).mul(t2);
+        let d = z1.mul(z2);
+        // TODO: Bug - This gives incorrect result
+        // let mut e = x1.add(y1).mul(x2.add(y2)).sub(a).sub(b);
+        let mut e = x1.add(y1).mul(x2.add(y2)).sub(a);
+        e = e.sub(b);
+        let f = d.sub(c);
+        let g = d.add(c);
+        let h = b.sub(self.a.mul(a));
+
+        let x = e.mul(f);
+        let y = g.mul(h);
+        let t = e.mul(h);
+        let z = f.mul(g);
+
+        Point::new(x, y, t, z)
+    }
+
+    // Point subtraction
+    fn sub(self, p1: Point, p2: Point) -> Point {
+        self.add(p1, p2.negate())
+    }
+
+    // Point doubling, cf. §3.3
+    fn double(self, p: Point) -> Point {
+        let Point{x, y, t: _t, z} = p;
+
+        let a = x.mul(x);
+        let b = y.mul(y);
+        let c = z.mul(z).double();
+        let d = self.a.mul(a);
+        let e = (x.add(y)).mul(x.add(y)).sub(a).sub(b);
+        let g = d.add(b);
+        let f = g.sub(c);
+        let h = d.sub(b);
+
+        let x0 = e.mul(f);
+        let y0 = g.mul(h);
+        let t0 = e.mul(h);
+        let z0 = f.mul(g);
+
+        Point::new(x0, y0, t0, z0)
+    }
+
+    // Scalar multiplication with scalar represented by a bit array (little-endian convention).
+    // If k is the natural number represented by `bits`, then this computes p + ... + p k times.
+    fn bit_mul<N>(self, bits: [u1; N], p: Point) -> Point {
+        let mut out = Point::zero();
+        
+        for i in 0..N {
+            if(bits[N - i - 1] == 0) {
+                out = self.add(
+                    self.add(out, out),
+                    Point::zero()
+                );
+            } else {
+                out = self.add(
+                    self.add(out, out),
+                    p
+                );
+            }
+            // TODO: BUG - This breaks
+            // out = self.add(
+            //     self.add(out, out),
+            //     if(bits[N - i - 1] == 0) {Point::zero()} else {p});
+        }
+
+        out
+    }
+    
+    // Scalar multiplication (p + ... + p n times)
+    fn mul(self, n: Fq, p: Point) -> Point {
+        let n_as_bits = n.to_bits();
+        self.bit_mul(n_as_bits, p)
+    }
+}
+
+// TODO:
+// 1. Implement affine coordinates and compare
+// 2. Remove redundant operations from formulas
+// 3. Combine to a Group struct
+// 4. Remove Point::new and use default constructor
