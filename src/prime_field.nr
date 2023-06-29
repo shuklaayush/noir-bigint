@@ -77,7 +77,7 @@ impl PrimeField {
     fn to_bytes(self: Self) -> [u8; MAX_BYTES] {
         // Turn into canonical form by computing
         // (a.R) / R = a
-        let tmp = PrimeField::montgomery_reduce([self.val.limbs[0], self.val.limbs[1], self.val.limbs[2], self.val.limbs[3], self.val.limbs[4], 0, 0, 0, 0, 0]);
+        let tmp = PrimeField::montgomery_reduce(self.val, BigUint56::zero());
         tmp.val.to_bytes()
     }
 
@@ -85,7 +85,7 @@ impl PrimeField {
     fn to_bits(self: Self) -> [u1; MAX_BITS] {
         // Turn into canonical form by computing
         // (a.R) / R = a
-        let tmp = PrimeField::montgomery_reduce([self.val.limbs[0], self.val.limbs[1], self.val.limbs[2], self.val.limbs[3], self.val.limbs[4], 0, 0, 0, 0, 0]);
+        let tmp = PrimeField::montgomery_reduce(self.val, BigUint56::zero());
         tmp.val.to_bits()
     }
 
@@ -142,22 +142,10 @@ impl PrimeField {
     }
 
     // Multiplies `rhs` by `self`, returning the result.
-    // TODO: Reuse BigUint56 mul?
     fn mul(self: Self, other: Self) -> Self {
-        let mut res = [0 as u56; 2*NUM_LIMBS];
+        let (lo, hi) = self.val.mul(other.val);
 
-        for i in 0..NUM_LIMBS {
-            let mut carry = 0;
-            for j in 0..NUM_LIMBS {
-                let (prod, c) = utils::mac(res[i + j], self.val.limbs[i], other.val.limbs[j], carry);
-                res[i + j] = prod;
-                carry = c;
-            };
-
-            res[i + NUM_LIMBS] = carry;
-        };
-
-        PrimeField::montgomery_reduce(res)
+        PrimeField::montgomery_reduce(lo, hi)
     }
 
     // Squares this element.
@@ -166,26 +154,36 @@ impl PrimeField {
         self.mul(self)
     }
 
-    // TODO: Copy instead of mutable array?
-    fn montgomery_reduce(mut r: [u56; 2*NUM_LIMBS]) -> Self {
+    fn montgomery_reduce(lo: BigUint56, hi: BigUint56) -> Self {
+        let mut tmp = [0 as u56; 2*NUM_LIMBS];
+        for i in 0..NUM_LIMBS {
+            tmp[i] = lo.limbs[i];
+            tmp[i + NUM_LIMBS] = hi.limbs[i];
+        }
+
         let modulus = PrimeField::modulus().val;
 
         let mut carry2 = 0;
         for i in 0..NUM_LIMBS {
-            let k = r[i] * PrimeField::P_INV();
+            let k = tmp[i] * PrimeField::P_INV();
             let mut carry = 0;
             for j in 0..NUM_LIMBS {
-                let (prod, c) = utils::mac(r[i + j], k, modulus.limbs[j], carry);
-                r[i + j] = prod;
+                let (prod, c) = utils::mac(tmp[i + j], k, modulus.limbs[j], carry);
+                tmp[i + j] = prod;
                 carry = c;
             }
 
-            let (sum, c) = utils::adc(r[i + NUM_LIMBS], carry2, carry);
-            r[i + NUM_LIMBS] = sum;
+            let (sum, c) = utils::adc(tmp[i + NUM_LIMBS], carry2, carry);
+            tmp[i + NUM_LIMBS] = sum;
             carry2 = c;
         }
 
-        let val = BigUint56{ limbs: [r[5], r[6], r[7], r[8], r[9]] };
+        let mut limbs = [0; NUM_LIMBS];
+        for i in 0..NUM_LIMBS {
+            limbs[i] = tmp[i + NUM_LIMBS];
+        }
+
+        let val = BigUint56{ limbs };
         if val.gte(modulus) {
             Self { val: val.sub(modulus) }
         } else {
