@@ -60,6 +60,10 @@ impl PrimeField {
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 
+    fn from_u56(val: u56) -> Self {
+        Self { val: BigUint56::from_u56(val) }
+    }
+
     fn from_limbs(limbs: [u56; NUM_LIMBS]) -> Self {
         Self { val: BigUint56{ limbs } }
     }

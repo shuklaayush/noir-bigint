@@ -43,6 +43,12 @@ impl BigUint56 {
         one.limbs[0] = 1;
         one
     }
+    
+    fn from_u56(val: u56) -> Self {
+        let mut buint = BigUint56::zero();
+        buint.limbs[0] = val;
+        buint
+    }
 
     // Constructs a BigUint56 from a byte array. Assumes that the byte array is little-endian.
     fn from_bytes(bytes: [u8]) -> Self {

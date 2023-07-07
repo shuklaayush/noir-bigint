@@ -42,14 +42,14 @@ impl Point {
 
     // Additive identity
     fn zero() -> Self {
-        Point { x: Fp::zero(), y: Fp::one(), t: Fp::zero(), z: Fp::one() }
+        Self { x: Fp::zero(), y: Fp::one(), t: Fp::zero(), z: Fp::one() }
     }
 
     // Negation
     fn negate(self) -> Self {
         let Self {x, y, t, z} = self;
 
-        Point { x: x.neg(), y, t: t.neg(), z }
+        Self { x: x.neg(), y, t: t.neg(), z }
     }
 
     // Print as bytes
