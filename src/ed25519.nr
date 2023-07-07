@@ -57,6 +57,13 @@ fn ed25519() -> Ed25519 {
     }
 }
 
+fn verify_signature(pubkey: Point, sig_R: Point, sig_s: Fq, msghash: Fq) -> bool {
+    let Ed25519 { curve, cofactor } = ed25519();
+
+    let R_prime = curve.sub(curve.mul(sig_s, curve.gen), curve.mul(msghash, pubkey));
+    curve.mul(cofactor, curve.sub(sig_R, R_prime)).is_zero()
+}
+
 #[test]
 fn test_point_is_zero() {
     assert(Point::zero().is_zero());
@@ -130,8 +137,6 @@ fn test_ed25519_mul3() {
 
 #[test]
 fn test_ed25519_verification_preshashed() {
-    let Ed25519 { curve, cofactor } = ed25519();
-
     let A = Point::from_affine( 
         Fp::from_bytes(
             [
@@ -185,6 +190,5 @@ fn test_ed25519_verification_preshashed() {
         ]
     );
 
-    let R_prime = curve.sub(curve.mul(s, curve.gen), curve.mul(k, A));
-    assert(curve.mul(cofactor, curve.sub(R, R_prime)).is_zero());
+    assert(verify_signature(A, R, s, k));
 }

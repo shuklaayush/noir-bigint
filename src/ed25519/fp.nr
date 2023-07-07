@@ -6,14 +6,56 @@ struct PrimeField {
     val: BigUint56
 }
 
-// INV = -p^{-1} mod 2^{BITS_PER_LIMB}
-//     = -p^{-1} mod 2^56
-global INV: u56 = 0xbca1af286bca1b;
-
 impl PrimeField {
-    fn new(val: BigUint56) -> Self {
+    ///////////////////////////////////////////////////////////////////////////
+    // FIELD SPECIFIC CONSTANTS: Ed25519 Fp
+    ///////////////////////////////////////////////////////////////////////////
+
+    // Prime field modulus
+    fn modulus() -> Self {
+        // let val = BigUint56::from_bytes([
+        //     0xed, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+        //     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+        //     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+        //     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f
+        // ]);
+        let val = BigUint56 { limbs: [0xffffffffffffed, 0xffffffffffffff, 0xffffffffffffff, 0xffffffffffffff, 0x7fffffff] };
         Self { val }
     }
+
+    // R = 2^{BITS_PER_LIMB*NUM_LIMBS} mod p
+    //   = 2^280 mod p
+    fn R() -> Self {
+        // let val = BigUint56::from_bytes([
+        //     0x00, 0x00, 0x00, 0x26, 0x00, 0x00, 0x00, 0x00, 
+        //     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+        //     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+        //     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        // ]);
+        let val = BigUint56 { limbs: [0x26000000, 0x, 0x, 0x, 0x] };
+        Self { val }
+    }
+
+    // R^2 mod p
+    fn R2() -> Self {
+        // let val = BigUint56::from_bytes([
+        //     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa4, 0x05, 
+        //     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+        //     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+        //     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        // ]);
+        let val = BigUint56 { limbs: [0xa4000000000000, 0x05, 0x, 0x, 0x] };
+        Self { val }
+    }
+
+    // INV = -p^{-1} mod 2^{BITS_PER_LIMB}
+    //     = -p^{-1} mod 2^56
+    fn P_INV() -> u56 {
+        0xbca1af286bca1b
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 
     fn from_limbs(limbs: [u56; NUM_LIMBS]) -> Self {
         Self { val: BigUint56{ limbs } }
@@ -36,7 +78,7 @@ impl PrimeField {
     fn to_bytes(self: Self) -> [u8; MAX_BYTES] {
         // Turn into canonical form by computing
         // (a.R) / R = a
-        let tmp = PrimeField::montgomery_reduce([self.val.limbs[0], self.val.limbs[1], self.val.limbs[2], self.val.limbs[3], self.val.limbs[4], 0, 0, 0, 0, 0]);
+        let tmp = PrimeField::montgomery_reduce(self.val, BigUint56::zero());
         tmp.val.to_bytes()
     }
 
@@ -44,7 +86,7 @@ impl PrimeField {
     fn to_bits(self: Self) -> [u1; MAX_BITS] {
         // Turn into canonical form by computing
         // (a.R) / R = a
-        let tmp = PrimeField::montgomery_reduce([self.val.limbs[0], self.val.limbs[1], self.val.limbs[2], self.val.limbs[3], self.val.limbs[4], 0, 0, 0, 0, 0]);
+        let tmp = PrimeField::montgomery_reduce(self.val, BigUint56::zero());
         tmp.val.to_bits()
     }
 
@@ -57,40 +99,6 @@ impl PrimeField {
     // Returns one, the multiplicative identity.
     fn one() -> Self {
         PrimeField::R()
-    }
-
-    // p
-    fn modulus() -> Self {
-        let val = BigUint56::from_bytes([
-            0xed, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
-            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
-            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
-            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f
-        ]);
-        Self { val }
-    }
-
-    // R = 2^{BITS_PER_LIMB*NUM_LIMBS} mod p
-    //   = 2^280 mod p
-    fn R() -> Self {
-        let val = BigUint56::from_bytes([
-            0x00, 0x00, 0x00, 0x26, 0x00, 0x00, 0x00, 0x00, 
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-        ]);
-        Self { val }
-    }
-
-    // R^2 mod p
-    fn R2() -> Self {
-        let val = BigUint56::from_bytes([
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa4, 0x05, 
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-        ]);
-        Self { val }
     }
 
     // Negates `self`.
@@ -106,13 +114,12 @@ impl PrimeField {
 
     // Adds `rhs` to `self`, returning the result.
     fn add(self: Self, rhs: Self) -> Self {
-        let sum = self.val.add(rhs.val);
+        let (sum, carry) = self.val.adc(rhs.val);
 
         let modulus = PrimeField::modulus().val;
-        if (sum.lt(modulus)) {
+        if ((carry == 0) & sum.lt(modulus)) {
             Self { val: sum }
         } else {
-            // TODO: What if sum overflows BigInt? Maybe check carry?
             Self { val: sum.sub(modulus) }
         }
     }
@@ -122,10 +129,10 @@ impl PrimeField {
         let (diff, borrow) = self.val.sbb(rhs.val);
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
-        let modulus = PrimeField::modulus().val;
         if borrow == 0 {
             Self { val: diff }
         } else {
+            let modulus = PrimeField::modulus().val;
             Self { val: diff.add(modulus) }
         }
     }
@@ -135,60 +142,11 @@ impl PrimeField {
         self.add(self)
     }
 
-    // Returns true iff this number == other.
-    fn is_zero(self: Self) -> bool {
-        self.val.is_zero()
-    }
-
-    // Returns true iff this number == other.
-    fn eq(self: Self, other: Self) -> bool {
-        self.val.eq(other.val)
-    }
-
     // Multiplies `rhs` by `self`, returning the result.
-    // TODO: Reuse BigUint56 mul?
     fn mul(self: Self, other: Self) -> Self {
-        let mut res = [0 as u56; 2*NUM_LIMBS];
+        let (lo, hi) = self.val.mul(other.val);
 
-        for i in 0..NUM_LIMBS {
-            let mut carry = 0;
-            for j in 0..NUM_LIMBS {
-                let (prod, c) = utils::mac(res[i + j], self.val.limbs[i], other.val.limbs[j], carry);
-                res[i + j] = prod;
-                carry = c;
-            };
-
-            res[i + NUM_LIMBS] = carry;
-        };
-
-        PrimeField::montgomery_reduce(res)
-    }
-
-    // TODO: Copy instead of mutable array?
-    fn montgomery_reduce(mut r: [u56; 2*NUM_LIMBS]) -> Self {
-        let modulus = PrimeField::modulus().val;
-
-        let mut carry2 = 0;
-        for i in 0..NUM_LIMBS {
-            let k = r[i] * INV;
-            let mut carry = 0;
-            for j in 0..NUM_LIMBS {
-                let (prod, c) = utils::mac(r[i + j], k, modulus.limbs[j], carry);
-                r[i + j] = prod;
-                carry = c;
-            }
-
-            let (sum, c) = utils::adc(r[i + NUM_LIMBS], carry2, carry);
-            r[i + NUM_LIMBS] = sum;
-            carry2 = c;
-        }
-
-        let val = BigUint56{ limbs: [r[5], r[6], r[7], r[8], r[9]] };
-        if val.gte(modulus) {
-            Self { val: val.sub(modulus) }
-        } else {
-            Self { val }
-        }
+        PrimeField::montgomery_reduce(lo, hi)
     }
 
     // Squares this element.
@@ -197,7 +155,45 @@ impl PrimeField {
         self.mul(self)
     }
 
+    fn montgomery_reduce(lo: BigUint56, hi: BigUint56) -> Self {
+        let mut tmp = [0 as u56; 2*NUM_LIMBS];
+        for i in 0..NUM_LIMBS {
+            tmp[i] = lo.limbs[i];
+            tmp[i + NUM_LIMBS] = hi.limbs[i];
+        }
+
+        let modulus = PrimeField::modulus().val;
+
+        let mut carry2 = 0;
+        for i in 0..NUM_LIMBS {
+            let k = tmp[i] * PrimeField::P_INV();
+            let mut carry = 0;
+            for j in 0..NUM_LIMBS {
+                let (prod, c) = utils::mac(tmp[i + j], k, modulus.limbs[j], carry);
+                tmp[i + j] = prod;
+                carry = c;
+            }
+
+            let (sum, c) = utils::adc(tmp[i + NUM_LIMBS], carry2, carry);
+            tmp[i + NUM_LIMBS] = sum;
+            carry2 = c;
+        }
+
+        let mut limbs = [0; NUM_LIMBS];
+        for i in 0..NUM_LIMBS {
+            limbs[i] = tmp[i + NUM_LIMBS];
+        }
+
+        let val = BigUint56{ limbs };
+        if val.gte(modulus) {
+            Self { val: val.sub(modulus) }
+        } else {
+            Self { val }
+        }
+    }
+
     // Exponentiates `self` by `by`.
+    // Double-and-add algorithm
     fn pow(self: Self, by: BigUint56) -> Self {
         let mut res = PrimeField::one();
         for i in 0..NUM_LIMBS {
@@ -220,9 +216,22 @@ impl PrimeField {
         self.pow(PrimeField::modulus().val.sub(BigUint56{ limbs: [2, 0, 0, 0, 0] }))
     }
 
+    // Checks if the field element is zero.
+    fn is_zero(self: Self) -> bool {
+        self.val.is_zero()
+    }
+
+    // Checks if self == other.
+    fn eq(self: Self, other: Self) -> bool {
+        self.val.eq(other.val)
+    }
+
     // Print as bytes
     fn println(self: Self) {
         let bytes = self.to_bytes();
         println(bytes);
     }
 }
+
+// TODO:
+// 1. Dedup when traits

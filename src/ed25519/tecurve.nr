@@ -96,11 +96,11 @@ impl Curve {
         if z.is_zero() | !z.mul(t).eq(x.mul(y)) {
             false
         } else {
-            let zz = z.mul(z);
-            let xx = x.mul(x);
-            let yy = y.mul(y);
+            let zz = z.square();
+            let xx = x.square();
+            let yy = y.square();
 
-            zz.mul(self.a.mul(xx).add(yy)).eq(zz.mul(zz).add(self.d.mul(xx).mul(yy)))
+            zz.mul(self.a.mul(xx).add(yy)).eq(zz.square().add(self.d.mul(xx).mul(yy)))
         }
     }
 
@@ -143,6 +143,7 @@ impl Curve {
         let c = z1.square().double();
         let d = self.a.mul(a);
         // BUG: This breaks in a single line
+        // let e = (x1.add(y1)).square().sub(a).sub(b);
         let mut e = (x1.add(y1)).square().sub(a);
         e = e.sub(b);
         let g = d.add(b);
@@ -184,6 +185,4 @@ impl Curve {
 }
 
 // TODO:
-// 1. Implement affine coordinates and compare
-// 2. Remove redundant operations from formulas
-// 3. Combine to a Group struct
+// 1. Remove redundant operations from formulas
