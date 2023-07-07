@@ -1,3 +1,5 @@
+use dep::std::println;
+
 mod utils;
 mod prime_field;
 mod ed25519;
@@ -358,6 +360,12 @@ impl BigUint56 {
     // Returns self * other % modulus.
     // TODO: Implement
     // fn mul_mod(self: Self, other: Self, modulus: Self)
+
+    // Print as bytes
+    fn println(self: Self) {
+        let bytes = self.to_bytes();
+        println(bytes);
+    }
 }
 
 #[test]

@@ -58,6 +58,11 @@ fn ed25519() -> Ed25519 {
 }
 
 #[test]
+fn test_point_is_zero() {
+    assert(Point::zero().is_zero());
+}
+
+#[test]
 fn test_ed25519_add1() {
     let Ed25519 { curve, cofactor: _cofactor } = ed25519();
 
@@ -74,11 +79,37 @@ fn test_ed25519_add2() {
 }
 
 #[test]
+fn test_ed25519_add3() {
+    let Ed25519 { curve, cofactor: _cofactor } = ed25519();
+
+    let p = Point::from_affine(Fp::zero(), Fp::one().neg());
+    let q = curve.add(p, p);
+    assert(q.is_zero());
+}
+
+#[test]
+fn test_ed25519_double1() {
+    let Ed25519 { curve, cofactor: _cofactor } = ed25519();
+
+    let p = curve.double(Point::zero());
+    assert(p.is_zero());
+}
+
+#[test]
+fn test_ed25519_double2() {
+    let Ed25519 { curve, cofactor: _cofactor } = ed25519();
+
+    let p = Point::from_affine(Fp::zero(), Fp::one().neg());
+    let q = curve.double(p);
+    assert(q.is_zero());
+}
+
+#[test]
 fn test_ed25519_mul1() {
     let Ed25519 { curve, cofactor: _cofactor } = ed25519();
 
     let p = curve.mul(Fq::one().double(), Point::zero());
-    assert(p.eq(Point::zero()));
+    assert(p.is_zero());
 }
 
 #[test]

@@ -1,3 +1,4 @@
+use dep::std::println;
 use crate::{BigUint56, NUM_LIMBS, BITS_PER_LIMB, MAX_BITS, MAX_BYTES, utils};
 
 // Prime field element
@@ -223,6 +224,12 @@ impl PrimeField {
     // Checks if self == other.
     fn eq(self: Self, other: Self) -> bool {
         self.val.eq(other.val)
+    }
+
+    // Print as bytes
+    fn println(self: Self) {
+        let bytes = self.to_bytes();
+        println(bytes);
     }
 }
 

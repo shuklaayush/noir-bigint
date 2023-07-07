@@ -1,3 +1,4 @@
+use dep::std::println;
 use crate::{BigUint56, NUM_LIMBS, BITS_PER_LIMB, MAX_BITS, MAX_BYTES, utils};
 
 // Field element
@@ -217,5 +218,11 @@ impl PrimeField {
         assert(!self.is_zero());
         // Exponentiate by p - 2
         self.pow(PrimeField::modulus().val.sub(BigUint56{ limbs: [2, 0, 0, 0, 0] }))
+    }
+
+    // Print as bytes
+    fn println(self: Self) {
+        let bytes = self.to_bytes();
+        println(bytes);
     }
 }

@@ -21,11 +21,6 @@ struct Curve { // Twisted Edwards curve
 }
 
 impl Point {
-    // Point constructor
-    fn new(x: Fp, y: Fp, t: Fp, z: Fp) -> Self {
-        Self {x, y, t, z}
-    }
-
     fn from_affine(x: Fp, y: Fp) -> Self {
         Self {x, y, t: x.mul(y), z: Fp::one()}
     }
@@ -47,14 +42,33 @@ impl Point {
 
     // Additive identity
     fn zero() -> Self {
-        Point::new(Fp::zero(), Fp::one(), Fp::zero(), Fp::one())
+        Point { x: Fp::zero(), y: Fp::one(), t: Fp::zero(), z: Fp::one() }
     }
 
     // Negation
     fn negate(self) -> Self {
         let Self {x, y, t, z} = self;
 
-        Point::new(x.neg(), y, t.neg(), z)
+        Point { x: x.neg(), y, t: t.neg(), z }
+    }
+
+    // Print as bytes
+    fn println(self: Self) {
+        self.x.println();
+        self.y.println();
+        self.t.println();
+        self.z.println();
+    }
+
+    // Print as bytes
+    fn println_affine(self: Self) {
+        let zinv = self.z.invert();
+
+        let x = self.x.mul(zinv);
+        let y = self.y.mul(zinv);
+        
+        x.println();
+        y.println();
     }
 }
 
@@ -99,7 +113,7 @@ impl Curve {
         let b = y1.mul(y2);
         let c = self.d.mul(t1).mul(t2);
         let d = z1.mul(z2);
-        // TODO: Bug - This gives incorrect result
+        // BUG: This gives incorrect result
         // let mut e = x1.add(y1).mul(x2.add(y2)).sub(a).sub(b);
         let mut e = x1.add(y1).mul(x2.add(y2)).sub(a);
         e = e.sub(b);
@@ -112,7 +126,7 @@ impl Curve {
         let t = e.mul(h);
         let z = f.mul(g);
 
-        Point::new(x, y, t, z)
+        Point { x, y, t, z }
     }
 
     // Point subtraction
@@ -120,25 +134,27 @@ impl Curve {
         self.add(p1, p2.negate())
     }
 
-    // Point doubling, cf. §3.3
+    // Point doubling
     fn double(self, p: Point) -> Point {
-        let Point{x, y, t: _t, z} = p;
+        let Point{x: x1, y: y1, t: _t1, z: z1} = p;
 
-        let a = x.mul(x);
-        let b = y.mul(y);
-        let c = z.mul(z).double();
+        let a = x1.square();
+        let b = y1.square();
+        let c = z1.square().double();
         let d = self.a.mul(a);
-        let e = (x.add(y)).mul(x.add(y)).sub(a).sub(b);
+        // BUG: This breaks in a single line
+        let mut e = (x1.add(y1)).square().sub(a);
+        e = e.sub(b);
         let g = d.add(b);
         let f = g.sub(c);
         let h = d.sub(b);
 
-        let x0 = e.mul(f);
-        let y0 = g.mul(h);
-        let t0 = e.mul(h);
-        let z0 = f.mul(g);
-
-        Point::new(x0, y0, t0, z0)
+        let x = e.mul(f);
+        let y = g.mul(h);
+        let t = e.mul(h);
+        let z = f.mul(g);
+        
+        Point { x, y, t, z }
     }
 
     // Scalar multiplication with scalar represented by a bit array (little-endian convention).
@@ -147,18 +163,11 @@ impl Curve {
         let mut out = Point::zero();
         
         for i in 0..N {
-            if(bits[N - i - 1] == 0) {
-                out = self.add(
-                    self.add(out, out),
-                    Point::zero()
-                );
-            } else {
-                out = self.add(
-                    self.add(out, out),
-                    p
-                );
+            out = self.double(out);
+            if(bits[N - i - 1] == 1) {
+                out = self.add(out, p);
             }
-            // TODO: BUG - This breaks
+            // BUG: This breaks
             // out = self.add(
             //     self.add(out, out),
             //     if(bits[N - i - 1] == 0) {Point::zero()} else {p});
@@ -178,4 +187,3 @@ impl Curve {
 // 1. Implement affine coordinates and compare
 // 2. Remove redundant operations from formulas
 // 3. Combine to a Group struct
-// 4. Remove Point::new and use default constructor
