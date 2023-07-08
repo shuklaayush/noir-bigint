@@ -3,6 +3,7 @@ use dep::std::println;
 mod utils;
 mod prime_field;
 mod ed25519;
+mod secp256k1;
 
 // BUG: Noir doesn't automatically add `comptime` to all globals, hence strongly typed
 // Number of bits per limb.

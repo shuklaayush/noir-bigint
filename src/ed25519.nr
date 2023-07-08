@@ -9,7 +9,6 @@ use fq::PrimeField as Fq;
 use tecurve::Point;
 use tecurve::Curve;
 
-
 struct Ed25519 {
     curve: Curve,
     cofactor: Fq
@@ -53,7 +52,7 @@ fn ed25519() -> Ed25519 {
                 ),
             ),
         ),
-        cofactor: Fq::from_bytes([0x08])
+        cofactor: Fq::from_u56(8)
     }
 }
 
@@ -65,7 +64,7 @@ fn verify_signature(pubkey: Point, sig_R: Point, sig_s: Fq, msghash: Fq) -> bool
 }
 
 #[test]
-fn test_point_is_zero() {
+fn test_ed25519_zero() {
     assert(Point::zero().is_zero());
 }
 

@@ -8,39 +8,43 @@ struct PrimeField {
 
 impl PrimeField {
     ///////////////////////////////////////////////////////////////////////////
-    // FIELD SPECIFIC CONSTANTS: Ed25519 Fp
+    // FIELD SPECIFIC CONSTANTS: Secp256k1 Fp
     ///////////////////////////////////////////////////////////////////////////
 
     // Prime field modulus
     fn modulus() -> Self {
-        let val = BigUint56 { limbs: [0xffffffffffffed, 0xffffffffffffff, 0xffffffffffffff, 0xffffffffffffff, 0x7fffffff] };
+        let val = BigUint56 { limbs: [0xfffffefffffc2f, 0xffffffffffffff, 0xffffffffffffff, 0xffffffffffffff, 0xffffffff] };
         Self { val }
     }
 
     // R = 2^{BITS_PER_LIMB*NUM_LIMBS} mod p
     //   = 2^280 mod p
     fn R() -> Self {
-        let val = BigUint56 { limbs: [0x26000000, 0x, 0x, 0x, 0x] };
+        let val = BigUint56 { limbs: [0x03d1000000, 0x01, 0, 0, 0] };
         Self { val }
     }
 
     // R^2 mod p
     fn R2() -> Self {
-        let val = BigUint56 { limbs: [0xa4000000000000, 0x05, 0x, 0x, 0x] };
+        let val = BigUint56 { limbs: [0xa1000000000000, 0x07a2000e90, 0x01, 0, 0] };
         Self { val }
     }
 
     // INV = -p^{-1} mod 2^{BITS_PER_LIMB}
     //     = -p^{-1} mod 2^56
     fn P_INV() -> u56 {
-        0xbca1af286bca1b
+        0x38091dd2253531
     }
 
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 
     fn from_u56(val: u56) -> Self {
-        Self { val: BigUint56::from_u56(val) }
+        let tmp = Self { val: BigUint56::from_u56(val) };
+
+        // Convert to Montgomery form by computing
+        // (a.R^0 * R^2) / R = a.R
+        tmp.mul(PrimeField::R2())
     }
 
     fn from_limbs(limbs: [u56; NUM_LIMBS]) -> Self {

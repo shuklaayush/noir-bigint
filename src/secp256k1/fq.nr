@@ -8,39 +8,43 @@ struct PrimeField {
 
 impl PrimeField {
     ///////////////////////////////////////////////////////////////////////////
-    // FIELD SPECIFIC CONSTANTS: Ed25519 Fp
+    // FIELD SPECIFIC CONSTANTS: Secp256k1 Fq
     ///////////////////////////////////////////////////////////////////////////
 
     // Prime field modulus
     fn modulus() -> Self {
-        let val = BigUint56 { limbs: [0xffffffffffffed, 0xffffffffffffff, 0xffffffffffffff, 0xffffffffffffff, 0x7fffffff] };
+        let val = BigUint56 { limbs: [0xd25e8cd0364141, 0xdce6af48a03bbf, 0xfffffffffebaae, 0xffffffffffffff, 0xffffffff] };
         Self { val }
     }
 
     // R = 2^{BITS_PER_LIMB*NUM_LIMBS} mod p
     //   = 2^280 mod p
     fn R() -> Self {
-        let val = BigUint56 { limbs: [0x26000000, 0x, 0x, 0x, 0x] };
+        let val = BigUint56 { limbs: [0x2fc9bebf000000, 0xb75fc4402da173, 0x014551231950, 0, 0] };
         Self { val }
     }
 
     // R^2 mod p
     fn R2() -> Self {
-        let val = BigUint56 { limbs: [0xa4000000000000, 0x05, 0x, 0x, 0x] };
+        let val = BigUint56 { limbs: [0x1d9fbd3812c6ba, 0x8b0bbad85b3f55, 0x1a6191e56f6050, 0xf5e45bcd07c73c, 0x9bc5e697] };
         Self { val }
     }
 
     // INV = -p^{-1} mod 2^{BITS_PER_LIMB}
     //     = -p^{-1} mod 2^56
     fn P_INV() -> u56 {
-        0xbca1af286bca1b
+        0x0dff665588b13f
     }
 
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 
     fn from_u56(val: u56) -> Self {
-        Self { val: BigUint56::from_u56(val) }
+        let tmp = Self { val: BigUint56::from_u56(val) };
+
+        // Convert to Montgomery form by computing
+        // (a.R^0 * R^2) / R = a.R
+        tmp.mul(PrimeField::R2())
     }
 
     fn from_limbs(limbs: [u56; NUM_LIMBS]) -> Self {
@@ -217,6 +221,13 @@ impl PrimeField {
         let bytes = self.to_bytes();
         println(bytes);
     }
+}
+
+#[test]
+fn test_print() {
+    let p = PrimeField::R2();
+    let limbs = p.val.limbs;
+    println(limbs);
 }
 
 // TODO:
