@@ -1,7 +1,7 @@
 use dep::std::println;
 
-use crate::ed25519::fp::PrimeField as Fp;
-use crate::ed25519::fq::PrimeField as Fq;
+use crate::examples::ed25519::fp::PrimeField as Fp;
+use crate::examples::ed25519::fq::PrimeField as Fq;
 
 // Point in extended twisted Edwards coordinates
 struct Point {
