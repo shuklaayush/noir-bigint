@@ -1,5 +1,8 @@
+use dep::std::println;
+
 mod utils;
 mod prime_field;
+mod examples;
 
 // BUG: Noir doesn't automatically add `comptime` to all globals, hence strongly typed
 // Number of bits per limb.
@@ -39,6 +42,12 @@ impl BigUint56 {
         let mut one = BigUint56::zero();
         one.limbs[0] = 1;
         one
+    }
+    
+    fn from_u56(val: u56) -> Self {
+        let mut buint = BigUint56::zero();
+        buint.limbs[0] = val;
+        buint
     }
 
     // Constructs a BigUint56 from a byte array. Assumes that the byte array is little-endian.
@@ -357,6 +366,12 @@ impl BigUint56 {
     // Returns self * other % modulus.
     // TODO: Implement
     // fn mul_mod(self: Self, other: Self, modulus: Self)
+
+    // Print as bytes
+    fn println(self: Self) {
+        let bytes = self.to_bytes();
+        println(bytes);
+    }
 }
 
 #[test]

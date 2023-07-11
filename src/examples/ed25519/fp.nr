@@ -1,42 +1,39 @@
 use dep::std::println;
 use crate::{BigUint56, NUM_LIMBS, BITS_PER_LIMB, MAX_BITS, MAX_BYTES, utils};
 
-// Prime field element
+// Field element
 struct PrimeField {
     val: BigUint56
 }
 
-// Represents a prime field element in Montgomery form
-// Montgomery form is a representation of a field element `a` as
-// `a.R mod p`, where `R = 2^{MAX_BITS}`.
 impl PrimeField {
     ///////////////////////////////////////////////////////////////////////////
-    // FIELD SPECIFIC CONSTANTS: BN254
+    // FIELD SPECIFIC CONSTANTS: Ed25519 Fp
     ///////////////////////////////////////////////////////////////////////////
 
     // Prime field modulus
     fn modulus() -> Self {
-        let val = BigUint56 { limbs: [0x208c16d87cfd47, 0x6a916871ca8d3c, 0xb68181585d9781, 0xe131a029b85045, 0x30644e72] };
+        let val = BigUint56 { limbs: [0xffffffffffffed, 0xffffffffffffff, 0xffffffffffffff, 0xffffffffffffff, 0x7fffffff] };
         Self { val }
     }
 
     // R = 2^{BITS_PER_LIMB*NUM_LIMBS} mod p
     //   = 2^280 mod p
     fn R() -> Self {
-        let val = BigUint56 { limbs: [0x6a56a28a0e0d96, 0x1e6c92b56d8f97, 0x10581c8ee608fc, 0x8c59c9e89f6e5c, 0x07359fa8] };
+        let val = BigUint56 { limbs: [0x26000000, 0x, 0x, 0x, 0x] };
         Self { val }
     }
 
     // R^2 mod p
     fn R2() -> Self {
-        let val = BigUint56 { limbs: [0xbb888f34693c46, 0x1c4bb9be2ac0dd, 0xc1a7aec3d9e1b9, 0x3cb4fa22c83580, 0x095e2ea9] };
+        let val = BigUint56 { limbs: [0xa4000000000000, 0x05, 0x, 0x, 0x] };
         Self { val }
     }
 
     // INV = -p^{-1} mod 2^{BITS_PER_LIMB}
     //     = -p^{-1} mod 2^56
     fn P_INV() -> u56 {
-        0xd20782e4866389
+        0xbca1af286bca1b
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -243,171 +240,5 @@ impl PrimeField {
     }
 }
 
-#[test]
-fn test_to_bytes1() {
-    let a = PrimeField::zero();
-    assert(a.to_bytes() == [0 as u8; MAX_BYTES]);
-}
-
-#[test]
-fn test_to_bytes2() {
-    let a = PrimeField::one();
-
-    let mut bytes = [0 as u8; MAX_BYTES];
-    bytes[0] = 1;
-    assert(a.to_bytes() == bytes);
-}
-
-#[test]
-fn test_sub1() {
-    let a = PrimeField::from_limbs([5, 0, 0, 0, 0]);
-    let b = PrimeField::from_limbs([3, 0, 0, 0, 0]);
-
-    let c = a.sub(b);
-    assert(c.eq(PrimeField::from_limbs([2, 0, 0, 0, 0])));
-}
-
-#[test]
-fn test_sub2() {
-    let a = PrimeField::one();
-    let b = PrimeField::one().double();
-
-    let c = a.sub(b);
-    assert(c.eq(PrimeField::neg(PrimeField::one())));
-}
-
-#[test]
-fn test_sub3() {
-    let a = PrimeField::one();
-    let b = PrimeField::one();
-
-    let c = a.sub(b);
-    assert(c.eq(PrimeField::zero()));
-}
-
-#[test]
-fn test_sub4() {
-    let a = PrimeField::zero();
-    let b = PrimeField::zero();
-
-    let c = a.sub(b);
-    assert(c.eq(PrimeField::zero()));
-}
-
-#[test]
-fn test_add1() {
-    let a = PrimeField::from_limbs([5, 0, 0, 0, 0]);
-    let b = PrimeField::from_limbs([3, 0, 0, 0, 0]);
-
-    let c = a.add(b);
-    assert(c.eq(PrimeField::from_limbs([8, 0, 0, 0, 0])));
-}
-
-#[test]
-fn test_add2() {
-    let a = PrimeField::neg(PrimeField::one());
-    let b = PrimeField::one();
-
-    let c = a.add(b);
-    assert(c.eq(PrimeField::zero()));
-}
-
-#[test]
-fn test_add3() {
-    let a = PrimeField::neg(PrimeField::one());
-    let b = PrimeField::one().double();
-
-    let c = a.add(b);
-    assert(c.eq(PrimeField::one()));
-}
-
-#[test]
-fn test_add4() {
-    let a = PrimeField::neg(PrimeField::one());
-    let b = PrimeField::neg(PrimeField::one());
-
-    let c = a.add(b);
-    assert(c.eq(PrimeField::neg(PrimeField::one().double())));
-}
-
-#[test]
-fn test_double() {
-    let a = PrimeField::from_limbs([3, 0, 0, 0, 0]);
-    let c = a.double();
-    assert(c.eq(PrimeField::from_limbs([6, 0, 0, 0, 0])));
-}
-
-#[test]
-fn test_mul1() {
-    let a = PrimeField::from_bytes([2]);
-    let b = PrimeField::from_bytes([3]);
-
-    let c = a.mul(b);
-
-    assert(c.eq(PrimeField::from_bytes([6])));
-}
-
-#[test]
-fn test_mul2() {
-    // p - 1
-    let a = PrimeField::neg(PrimeField::one());
-    let b = PrimeField::from_bytes([2]);
-
-    // 2*p - 2
-    let c = a.mul(b);
-    assert(c.eq(PrimeField::neg(PrimeField::from_bytes([2]))));
-}
-
-#[test]
-fn test_pow1() {
-    let a = PrimeField::zero();
-    let b = BigUint56::from_bytes([8]);
-
-    let c = a.pow(b);
-    assert(c.eq(PrimeField::zero()));
-}
-
-#[test]
-fn test_pow2() {
-    let a = PrimeField::one();
-    let b = BigUint56::from_bytes([8]);
-
-    let c = a.pow(b);
-    assert(c.eq(PrimeField::one()));
-}
-
-#[test]
-fn test_pow3() {
-    let a = PrimeField::from_bytes([7]);
-    let b = BigUint56::from_bytes([0]);
-
-    let c = a.pow(b);
-    assert(c.eq(PrimeField::one()));
-}
-
-#[test]
-fn test_pow4() {
-    let a = PrimeField::from_bytes([7]);
-    let b = BigUint56::from_bytes([1]);
-
-    let c = a.pow(b);
-    assert(c.eq(a));
-}
-
-#[test]
-fn test_pow5() {
-    let a = PrimeField::from_bytes([7]);
-    let b = BigUint56::from_bytes([2]);
-
-    let c = a.pow(b);
-    assert(c.eq(PrimeField::from_bytes([49])));
-}
-
-#[test]
-fn test_invert1() {
-    let a = PrimeField::from_bytes([7]);
-    let b = a.invert();
-
-    let c = a.mul(b);
-    assert(c.eq(PrimeField::one()));
-}
+// TODO:
+// 1. Dedup when traits
