@@ -56,6 +56,7 @@ fn ed25519() -> Ed25519 {
     }
 }
 
+// TODO: Check if pubkey, sig_R is on curve and sig_s < L?
 fn verify_signature(pubkey: Point, sig_R: Point, sig_s: Fq, msghash: Fq) -> bool {
     let Ed25519 { curve, cofactor } = ed25519();
 

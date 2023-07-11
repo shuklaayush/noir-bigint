@@ -20,12 +20,13 @@ struct Curve { // Short Weierstrass curve
 }
 
 impl Point {
-    fn from_affine(x: Fp, y: Fp, infty: bool) -> Self {
-        if (infty) {
-            Self {x: Fp::zero(), y: Fp::zero(), z: Fp::zero()}
-        } else {
-            Self {x, y, z: Fp::one()}
-        }
+    fn from_affine(x: Fp, y: Fp) -> Self {
+        Self {x, y, z: Fp::one()}
+    }
+
+    // Additive identity
+    fn zero() -> Self {
+        Self {x: Fp::zero(), y: Fp::zero(), z: Fp::zero()}
     }
 
     // Check for equality
@@ -33,8 +34,21 @@ impl Point {
         let Self {x: x1, y: y1, z: z1} = self;
         let Self {x: x2, y: y2, z: z2} = p;
 
-        // TODO: Simplify
-        ((z1.is_zero()) & (z2.is_zero())) | ((!z1.is_zero()) & (!z2.is_zero()) & (x1.mul(z2).mul(z2).eq(x2.mul(z1).mul(z1))) & (y1.mul(z2).mul(z2).mul(z2).eq(y2.mul(z1).mul(z1).mul(z1))))
+        let z1_is_zero = z1.is_zero();
+        let z2_is_zero = z2.is_zero();
+
+        if (!z1_is_zero & !z2_is_zero) {
+            let z1sq = z1.square();
+            let z2sq = z2.square();
+            
+            let z1cb = z1sq.mul(z1);
+            let z2cb = z2sq.mul(z2);
+
+            (x1.mul(z2sq).eq(x2.mul(z1sq))) & (y1.mul(z2cb).eq(y2.mul(z1cb)))
+        } else {
+            z1_is_zero & z2_is_zero
+
+        }
     }
 
     // Check if zero
@@ -44,16 +58,25 @@ impl Point {
         z.is_zero()
     }
 
-    // Additive identity
-    fn zero() -> Self {
-        Self {x: Fp::zero(), y: Fp::zero(), z: Fp::zero()}
-    }
-
     // Negation
     fn negate(self) -> Self {
         let Self {x, y, z} = self;
 
         Self { x, y: y.neg(), z }
+    }
+
+    // Convert to affine coordinates
+    // TODO: Create affine struct
+    fn to_affine(self) -> (Fp, Fp) {
+        assert(!self.z.is_zero());
+
+        let zinv = self.z.invert();
+        let zinv2 = zinv.square();
+
+        let x = self.x.mul(zinv2);
+        let y = self.y.mul(zinv2).mul(zinv);
+
+        (x, y)
     }
 
     // Print as bytes
@@ -69,11 +92,7 @@ impl Point {
             println("O");
             println("O");
         } else {
-            let zinv = self.z.invert();
-            let zinv2 = zinv.square();
-
-            let x = self.x.mul(zinv2);
-            let y = self.y.mul(zinv.mul(zinv2));
+            let (x, y) = self.to_affine();
             
             x.println();
             y.println();
@@ -121,14 +140,14 @@ impl Curve {
             let Point {x: x1, y: y1, z: z1} = p1;
             let Point {x: x2, y: y2, z: z2} = p2;
             
-            let z12 = z1.square();
-            let z22 = z2.square();
+            let z1z1 = z1.square();
+            let z2z2 = z2.square();
             
-            let you1 = x1.mul(z22);
-            let you2 = x2.mul(z12);
+            let you1 = x1.mul(z2z2);
+            let you2 = x2.mul(z1z1);
             
-            let s1 = y1.mul(z22.mul(z2));
-            let s2 = y2.mul(z12.mul(z1));
+            let s1 = y1.mul(z2z2.mul(z2));
+            let s2 = y2.mul(z1z1.mul(z1));
             
             if you1.eq(you2) {
                 if !s1.eq(s2) {
@@ -142,8 +161,12 @@ impl Curve {
 
                 let hh = h.square();
                 let hhh = hh.mul(h);
-                let x3 = r.square().sub(hhh).sub(you1.mul(hh).double());
-                let y3 = r.mul((you1.mul(hh)).sub(x3)).sub(s1.mul(hhh));
+                // BUG: Doesn't work in a single line
+                let mut x3 = r.square().sub(hhh);
+                x3 = x3.sub(you1.mul(hh).double());
+                // BUG: Doesn't work in a single line
+                let mut y3 = r.mul(you1.mul(hh).sub(x3));
+                y3 = y3.sub(s1.mul(hhh));
                 let z3 = h.mul(z1).mul(z2);
                 
                 Point { x: x3, y: y3, z: z3 }
@@ -175,7 +198,7 @@ impl Curve {
             let m = Fp::from_u56(3).mul(xx).add(self.a.mul(zzzz));
 
             let x0 = m.square().sub(s.double());
-            let y0 = m.sub(s.sub(x0)).sub(Fp::from_u56(8).mul(yyyy));
+            let y0 = m.mul(s.sub(x0)).sub(Fp::from_u56(8).mul(yyyy));
             let z0 = y.mul(z).double();
 
             Point{ x: x0, y: y0, z: z0 }
@@ -188,6 +211,7 @@ impl Curve {
         let mut out = Point::zero();
         
         for i in 0..N {
+            // TODO: Only start at first non-zero bit
             out = self.double(out);
             if(bits[N - i - 1] == 1) {
                 out = self.add(out, p);

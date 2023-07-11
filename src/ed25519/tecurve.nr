@@ -25,6 +25,11 @@ impl Point {
         Self {x, y, t: x.mul(y), z: Fp::one()}
     }
 
+    // Additive identity
+    fn zero() -> Self {
+        Self { x: Fp::zero(), y: Fp::one(), t: Fp::zero(), z: Fp::one() }
+    }
+
     // Check for equality
     fn eq(self, p: Point) -> bool {
         let Self {x: x1, y: y1, t: _t1, z: z1} = self;
@@ -40,16 +45,22 @@ impl Point {
         x.is_zero() & y.eq(z)
     }
 
-    // Additive identity
-    fn zero() -> Self {
-        Self { x: Fp::zero(), y: Fp::one(), t: Fp::zero(), z: Fp::one() }
-    }
-
     // Negation
     fn negate(self) -> Self {
         let Self {x, y, t, z} = self;
 
         Self { x: x.neg(), y, t: t.neg(), z }
+    }
+    
+    // Convert to affine coordinates
+    // TODO: Create struct
+    fn to_affine(self) -> (Fp, Fp) {
+        let zinv = self.z.invert();
+
+        let x = self.x.mul(zinv);
+        let y = self.y.mul(zinv);
+        
+        (x, y)
     }
 
     // Print as bytes
@@ -62,10 +73,7 @@ impl Point {
 
     // Print as bytes
     fn println_affine(self: Self) {
-        let zinv = self.z.invert();
-
-        let x = self.x.mul(zinv);
-        let y = self.y.mul(zinv);
+        let (x, y) = self.to_affine();
         
         x.println();
         y.println();

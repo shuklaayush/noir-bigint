@@ -39,6 +39,11 @@ impl PrimeField {
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 
+    // TODO: Emphasize that there's no montgomery mul here.
+    fn from_limbs(limbs: [u56; NUM_LIMBS]) -> Self {
+        Self { val: BigUint56{ limbs } }
+    }
+
     fn from_u56(val: u56) -> Self {
         let tmp = Self { val: BigUint56::from_u56(val) };
 
@@ -47,13 +52,18 @@ impl PrimeField {
         tmp.mul(PrimeField::R2())
     }
 
-    fn from_limbs(limbs: [u56; NUM_LIMBS]) -> Self {
-        Self { val: BigUint56{ limbs } }
+    fn from_biguint56(val: BigUint56) -> Self {
+        let tmp = Self { val };
+
+        // Convert to Montgomery form by computing
+        // (a.R^0 * R^2) / R = a.R
+        tmp.mul(PrimeField::R2())
     }
 
     fn from_bytes(bytes: [u8]) -> Self {
         let tmp = Self { val: BigUint56::from_bytes(bytes) };
 
+        // TODO: Do I need to check this?
         // Check that tmp < p
         let modulus = PrimeField::modulus();
         assert(tmp.val.lt(modulus.val));
@@ -61,6 +71,13 @@ impl PrimeField {
         // Convert to Montgomery form by computing
         // (a.R^0 * R^2) / R = a.R
         tmp.mul(PrimeField::R2())
+    }
+
+    fn to_biguint56(self: Self) -> BigUint56 {
+        // Turn into canonical form by computing
+        // (a.R) / R = a
+        let tmp = PrimeField::montgomery_reduce(self.val, BigUint56::zero());
+        tmp.val
     }
 
     // Converts a field element into a byte representation in
