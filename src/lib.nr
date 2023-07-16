@@ -587,13 +587,13 @@ fn test_mul2() {
     assert(lo.eq(BigUint56::one()));
     assert(hi.eq(BigUint56{ limbs: [
         -2 as u56, -1 as u56, -1 as u56, -1 as u56, -1 as u56,
-        0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0,
-        0, 0
+        -1 as u56, -1 as u56, -1 as u56, -1 as u56, -1 as u56,
+        -1 as u56, -1 as u56, -1 as u56, -1 as u56, -1 as u56,
+        -1 as u56, -1 as u56, -1 as u56, -1 as u56, -1 as u56,
+        -1 as u56, -1 as u56, -1 as u56, -1 as u56, -1 as u56,
+        -1 as u56, -1 as u56, -1 as u56, -1 as u56, -1 as u56,
+        -1 as u56, -1 as u56, -1 as u56, -1 as u56, -1 as u56,
+        -1 as u56, -1 as u56
     ] }));
 }
 
