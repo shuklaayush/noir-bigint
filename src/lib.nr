@@ -366,6 +366,7 @@ impl BigUint56 {
     // Returns self * other % modulus.
     // This is the most naive way lol for hackathon purposes
     fn mul_mod(self: Self, other: Self, modulus: Self) -> Self {
+        // TODO: Add assert check
         // Assume modulus is < max bits)
         let (lo, _hi) = self.mul(other);
 
