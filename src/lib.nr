@@ -848,3 +848,15 @@ fn test_mul_mod1() {
 
     assert(d.eq(BigUint56::from_bytes([1])));
 }
+
+#[test]
+fn test_mul_mod2() {
+    let a = BigUint56::from_bytes([1125899906842624]); // Max value in u56
+    let b = BigUint56::from_bytes([1125899906842624]);
+    let c = BigUint56::from_bytes([3]);
+
+    let d = a.mul_mod(b, c);
+
+    // Correct Mul_Mod
+    assert(d.eq(BigUint56::from_bytes([1])));
+}
