@@ -51,6 +51,22 @@ impl BigUint56 {
     }
 
     // Constructs a BigUint56 from a byte array. Assumes that the byte array is little-endian.
+    fn from_bits(bits: [u1]) -> Self {
+        // TODO: Do I need this check?
+        assert(bits.len() as u56 <= MAX_BITS as u56);
+
+        let mut res = BigUint56::zero();
+        for i in 0..bits.len() {
+            let limb_index = (i as u56) / (BITS_PER_LIMB as u56);
+            let bit_index = (i as u56) % (BITS_PER_LIMB as u56);
+
+            res.limbs[limb_index as Field] |= (bits[i] as u56) << bit_index;
+        }
+
+        res
+    }
+
+    // Constructs a BigUint56 from a byte array. Assumes that the byte array is little-endian.
     fn from_bytes(bytes: [u8]) -> Self {
         // TODO: Do I need this check?
         assert(bytes.len() as u56 <= MAX_BYTES as u56);
@@ -292,7 +308,12 @@ impl BigUint56 {
             let mut quo = BigUint56::zero();
 
             let bit_diff = self.nbits() - other.nbits();
-            let mut c = other.shl(bit_diff);
+
+            let mut bits = [0 as u1; MAX_BITS];
+            bits[bit_diff] = 1;
+            let pow2 = BigUint56::from_bits(bits);
+
+            let mut (c, _hi) = other.mul(pow2);
 
             for i in 0..MAX_BITS+1 {
                 if i as u56 <= bit_diff {
@@ -313,19 +334,30 @@ impl BigUint56 {
     fn rem_mod(self: Self, modulus: Self) -> Self {
         assert(!modulus.is_zero());
 
-        let mut rem = self;
-        let bit_diff = self.nbits() - modulus.nbits();
-        let mut c = modulus.shl(bit_diff);
+        if self.lt(modulus) {
+            self
+        } else {
+            let mut rem = self;
+            let bit_diff = self.nbits() - modulus.nbits();
 
-        for i in 0..MAX_BITS+1 {
-            if i as u56 <= bit_diff {
-                if rem.gte(c) {
-                    rem = rem.sub(c);
-                }
-                c = c.shr1();
+            let mut bits = [0 as u1; MAX_BITS];
+            if (bit_diff < MAX_BITS as u56) {
+                bits[bit_diff as Field] = 1 as u1;
             }
-        };
-        rem
+            let pow2 = BigUint56::from_bits(bits);
+
+            let mut (c, _hi) = modulus.mul(pow2);
+
+            for i in 0..MAX_BITS+1 {
+                if i as u56 <= bit_diff {
+                    if rem.gte(c) {
+                        rem = rem.sub(c);
+                    }
+                    c = c.shr1();
+                }
+            };
+            rem
+        }
     }
 
     // Checks if self == other.
@@ -400,41 +432,40 @@ impl BigUint56 {
 
     // Returns self ^ 65537 % modulus.
     fn pow_mod_65537(self: Self,  modulus: Self) -> Self {
-        
         // Simple implementation
-        let mut base = self;
+        // let mut base = self;
+        
         // base * base
-        let pow1 = base.mul_mod(base, modulus);
-        pow1.println();
+        // let pow1 = base.mul_mod(base, modulus);
+        // pow1.println();
 
         // (base * base) * (base * base)
-        let pow2 = pow1.mul_mod(pow1, modulus);
-        pow2.println();
+        // let pow2 = pow1.mul_mod(pow1, modulus);
+        // pow2.println();
 
         // (base * base) * (base * base) * (base * base)
-        let pow3 = pow2.mul_mod(pow2, modulus);
-        pow3.println();
-
+        // let pow3 = pow2.mul_mod(pow2, modulus);
+        // pow3.println();
 
         // This is the code we want to run
         // Square and Multiply algorithm
 
-        // let mut res = BigUint56::one();
-        // let mut pow = self;
+        let mut res = BigUint56::one();
+        let mut pow = self;
 
         // // [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1] binary representation of 65537
-        // res = res.mul_mod(pow, modulus);        // 1
-        // pow = pow.square_mod(modulus); 
+        res = res.mul_mod(pow, modulus);        // 1
+        pow = pow.square_mod(modulus); 
 
         // // 15 zeroes
-        // for _i in 0..15 {
-        //     pow = pow.square_mod(modulus);
-        // }
+        for _i in 0..15 {
+            pow = pow.square_mod(modulus);
+        }
         // // Another 1
-        // res = res.mul_mod(pow, modulus);
+        res = res.mul_mod(pow, modulus);
 
-        // res
-        pow2
+        res
+        // pow2
     }
     
     // Print as bytes
@@ -944,5 +975,3 @@ fn test_pow_mod1() {
 
     // assert(d.eq(BigUint56::from_bytes([2])));
 }
-
-
