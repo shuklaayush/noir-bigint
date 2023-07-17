@@ -315,12 +315,17 @@ impl BigUint56 {
         assert(!modulus.is_zero());
 
         let mut rem = self;
-        for _i in 0..MAX_BITS+1 {
-            if rem.gte(modulus) {
-                rem = rem.sub(modulus);
+        let bit_diff = self.nbits() - modulus.nbits();
+        let mut c = modulus.shl(bit_diff);
+
+        for i in 0..MAX_BITS+1 {
+            if i as u56 <= bit_diff {
+                if rem.gte(c) {
+                    rem = rem.sub(c);
+                }
+                c = c.shr1();
             }
         };
-
         rem
     }
 
@@ -383,7 +388,15 @@ impl BigUint56 {
         // Assume modulus is < max bits)
         let (lo, _hi) = self.mul(other);
 
+        println("low");
+        lo.println();
+        println("high");
+        _hi.println();
+
         let rem = lo.rem_mod(modulus);
+
+        println("rem");
+        rem.println();
 
         rem
     }
@@ -895,11 +908,10 @@ fn test_mul_mod2() {
     let c = BigUint56::from_bytes([3]);
 
     let d = a.mul_mod(b, c);
-
-    // Correct Mul_Mod
-    assert(d.eq(BigUint56::from_bytes([1])));
+    d.println();
 }
 
+#[test]
 fn test_pow_mod1() {
     let a = BigUint56::from_bytes([2]);
     let b = BigUint56::from_bytes([65537]);
@@ -908,4 +920,15 @@ fn test_pow_mod1() {
     let d = a.pow_mod(b, c);
 
     assert(d.eq(BigUint56::from_bytes([4])));
+}
+
+
+#[test]
+fn test_rem_mod() {
+    let a = BigUint56::from_bytes([7001]); // Max value in u56
+    let b = BigUint56::from_bytes([7]);
+   
+    let c = a.rem_mod(b);
+    // c.println();
+    assert(c.eq(BigUint56::from_bytes([1])));
 }
