@@ -311,6 +311,19 @@ impl BigUint56 {
         }
     }
 
+    fn rem_mod(self: Self, modulus: Self) -> Self {
+        assert(!modulus.is_zero());
+
+        let mut rem = self;
+        for _i in 0..MAX_BITS+1 {
+            if rem.gte(modulus) {
+                rem = rem.sub(modulus);
+            }
+        };
+
+        rem
+    }
+
     // Checks if self == other.
     fn eq(self: Self, other: Self) -> bool {
         let mut is_eq = true;
@@ -364,17 +377,42 @@ impl BigUint56 {
     }
     
     // Returns self * other % modulus.
-    // This is the most naive way lol for hackathon purposes
+    // TODO: This is the most naive way lol for hackathon purposes
     fn mul_mod(self: Self, other: Self, modulus: Self) -> Self {
         // TODO: Add assert check
         // Assume modulus is < max bits)
         let (lo, _hi) = self.mul(other);
 
-        let (_quo, rem) = lo.div(modulus);
+        let rem = lo.rem_mod(modulus);
 
         rem
     }
 
+    // Returns self * self % modulus.
+    fn square_mod(self: Self, modulus: Self) -> Self {
+        let rem = self.mul_mod(self, modulus);
+        
+        rem
+    }
+
+    // Returns self ^ 65537 % modulus.
+    fn pow_mod(self: Self, e: Self, modulus: Self) -> Self {
+        
+        let e_bits = e.to_bits();
+        let mut res = BigUint56::one();
+        let mut pow = self;
+
+        // Assume exponent is <17 bits for now (e.g. 65537)
+        for i in 0..17 {
+            let mut bit = e_bits[i];
+            if 1 as u1 == bit {
+                res = res.mul_mod(pow, modulus);
+            }         
+            pow = pow.square_mod(modulus);
+        }
+        res
+    }
+    
     // Print as bytes
     fn println(self: Self) {
         let bytes = self.to_bytes();
@@ -860,4 +898,14 @@ fn test_mul_mod2() {
 
     // Correct Mul_Mod
     assert(d.eq(BigUint56::from_bytes([1])));
+}
+
+fn test_pow_mod1() {
+    let a = BigUint56::from_bytes([2]);
+    let b = BigUint56::from_bytes([65537]);
+    let c = BigUint56::from_bytes([7]);
+
+    let d = a.pow_mod(b, c);
+
+    assert(d.eq(BigUint56::from_bytes([4])));
 }
