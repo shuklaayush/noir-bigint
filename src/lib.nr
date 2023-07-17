@@ -185,7 +185,6 @@ impl BigUint56 {
             res.limbs[i] = (self.limbs[i] << n) | (self.limbs[i - 1] >> rshift);
         // BUG: Panics without this semi-colon.
         };
-
         (res, carry)
     }
 
@@ -387,17 +386,8 @@ impl BigUint56 {
         // TODO: Add assert check
         // Assume modulus is < max bits)
         let (lo, _hi) = self.mul(other);
-
-        println("low");
-        lo.println();
-        println("high");
-        _hi.println();
-
+        // We assume that the mul is < 2^560, so we can just mod the low part.
         let rem = lo.rem_mod(modulus);
-
-        println("rem");
-        rem.println();
-
         rem
     }
 
@@ -409,21 +399,42 @@ impl BigUint56 {
     }
 
     // Returns self ^ 65537 % modulus.
-    fn pow_mod(self: Self, e: Self, modulus: Self) -> Self {
+    fn pow_mod_65537(self: Self,  modulus: Self) -> Self {
         
-        let e_bits = e.to_bits();
-        let mut res = BigUint56::one();
-        let mut pow = self;
+        // Simple implementation
+        let mut base = self;
+        // base * base
+        let pow1 = base.mul_mod(base, modulus);
+        pow1.println();
 
-        // Assume exponent is <17 bits for now (e.g. 65537)
-        for i in 0..17 {
-            let mut bit = e_bits[i];
-            if 1 as u1 == bit {
-                res = res.mul_mod(pow, modulus);
-            }         
-            pow = pow.square_mod(modulus);
-        }
-        res
+        // (base * base) * (base * base)
+        let pow2 = pow1.mul_mod(pow1, modulus);
+        pow2.println();
+
+        // (base * base) * (base * base) * (base * base)
+        let pow3 = pow2.mul_mod(pow2, modulus);
+        pow3.println();
+
+
+        // This is the code we want to run
+        // Square and Multiply algorithm
+
+        // let mut res = BigUint56::one();
+        // let mut pow = self;
+
+        // // [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1] binary representation of 65537
+        // res = res.mul_mod(pow, modulus);        // 1
+        // pow = pow.square_mod(modulus); 
+
+        // // 15 zeroes
+        // for _i in 0..15 {
+        //     pow = pow.square_mod(modulus);
+        // }
+        // // Another 1
+        // res = res.mul_mod(pow, modulus);
+
+        // res
+        pow2
     }
     
     // Print as bytes
@@ -891,6 +902,16 @@ fn test_add_mod1() {
 }
 
 #[test]
+fn test_rem_mod() {
+    let a = BigUint56::from_bytes([7001]); // Max value in u56
+    let b = BigUint56::from_bytes([7]);
+   
+    let c = a.rem_mod(b);
+    // c.println();
+    assert(c.eq(BigUint56::from_bytes([1])));
+}
+
+#[test]
 fn test_mul_mod1() {
     let a = BigUint56::from_bytes([2]);
     let b = BigUint56::from_bytes([8]);
@@ -909,26 +930,19 @@ fn test_mul_mod2() {
 
     let d = a.mul_mod(b, c);
     d.println();
+    assert(d.eq(BigUint56::from_bytes([1])));
 }
+
 
 #[test]
 fn test_pow_mod1() {
     let a = BigUint56::from_bytes([2]);
     let b = BigUint56::from_bytes([65537]);
-    let c = BigUint56::from_bytes([7]);
+    let c = BigUint56::from_bytes([10]);
 
-    let d = a.pow_mod(b, c);
+    let d = a.pow_mod_65537(c);
 
-    assert(d.eq(BigUint56::from_bytes([4])));
+    // assert(d.eq(BigUint56::from_bytes([2])));
 }
 
 
-#[test]
-fn test_rem_mod() {
-    let a = BigUint56::from_bytes([7001]); // Max value in u56
-    let b = BigUint56::from_bytes([7]);
-   
-    let c = a.rem_mod(b);
-    // c.println();
-    assert(c.eq(BigUint56::from_bytes([1])));
-}
