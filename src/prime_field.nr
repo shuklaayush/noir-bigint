@@ -217,13 +217,29 @@ impl PrimeField {
         }
         res
     }
+    
+    unconstrained fn pow_unc(self: Self, by: BigUint56) -> Self {
+        self.pow(by)
+    }
 
     // Computes the multiplicative inverse of this element,
     // failing if the element is zero.
     fn invert(self: Self) -> Self {
         assert(!self.is_zero());
-        // Exponentiate by p - 2
-        self.pow(PrimeField::modulus().val.sub(BigUint56{ limbs: [2, 0, 0, 0, 0] }))
+
+        let inv = self.pow(PrimeField::modulus().val.sub(BigUint56{ limbs: [2, 0, 0, 0, 0] }));
+
+        inv
+    }
+
+    // Non-deterministic version of invert
+    fn invert_brillig(self: Self) -> Self {
+        assert(!self.is_zero());
+
+        let inv = self.pow_unc(PrimeField::modulus().val.sub(BigUint56{ limbs: [2, 0, 0, 0, 0] }));
+        assert(self.mul(inv).eq(PrimeField::one()));
+
+        inv
     }
 
     // Checks if the field element is zero.

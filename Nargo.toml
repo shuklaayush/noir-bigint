@@ -1,5 +1,6 @@
 [package]
+name = "noir_bigint"
 authors = ["shuklaayush"]
-compiler_version = "0.7.1"
+compiler_version = "0.9.0"
 
 [dependencies]
