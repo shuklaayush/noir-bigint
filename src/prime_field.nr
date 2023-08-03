@@ -42,9 +42,15 @@ impl PrimeField {
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 
-    // TODO: Emphasize that there's no montgomery mul here.
-    fn from_limbs(limbs: [u56; NUM_LIMBS]) -> Self {
+    // No montgomery mul here.
+    fn from_raw_limbs(limbs: [u56; NUM_LIMBS]) -> Self {
         Self { val: BigUint56{ limbs } }
+    }
+
+    fn from_limbs(limbs: [u56; NUM_LIMBS]) -> Self {
+        let tmp = Self { val: BigUint56{ limbs } };
+
+        tmp.mul(PrimeField::R2())
     }
 
     fn from_u56(val: u56) -> Self {
