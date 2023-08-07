@@ -1,8 +1,6 @@
 use dep::std::println;
 
 mod utils;
-mod prime_field;
-mod examples;
 
 // BUG: Noir doesn't automatically add `comptime` to all globals, hence strongly typed
 // Number of bits per limb.
