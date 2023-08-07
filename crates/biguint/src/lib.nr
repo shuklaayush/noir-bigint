@@ -2,53 +2,54 @@ use dep::std::println;
 
 mod utils;
 
-// BUG: Noir doesn't automatically add `comptime` to all globals, hence strongly typed
-// Number of bits per limb.
-global BITS_PER_LIMB: comptime Field = 56;
-// Number of limbs.
-global NUM_LIMBS: comptime Field = 5;
-// Noir doesn't support expressions on globals so these are hardcoded
-// Number of bytes per limb.
-global BYTES_PER_LIMB: comptime Field = 7; // BITS_PER_LIMB / 8
-// Maximum number of bits.
-global MAX_BITS: comptime Field = 280; // BITS_PER_LIMB * NUM_LIMBS
-// Maximum number of bytes.
-global MAX_BYTES: comptime Field = 35; // NUM_LIMBS * BYTES_PER_LIMB
+// Top-level constants related to the size of BigUint56 limbs and bytes.
+global BITS_PER_LIMB: comptime Field = 56; /// Number of bits per limb.
+global NUM_LIMBS: comptime Field = 5;      /// Number of limbs.
 
-// BigUint56 represents a large unsigned integer using a fixed number of limbs, each of which is a 56-bit unsigned integer.
-// We use u56 limbs because 
-// 1. 56 is divisible by 8 which makes to/from bytes easier
-// 2. Multiplication requires a double width intermediate value and u112 is the maximum
-//    double width value that can be represented in Noir
-struct BigUint56 {
-    limbs: [u56; NUM_LIMBS],
-}
+global BYTES_PER_LIMB: comptime Field = 7; /// Number of bytes per limb (BITS_PER_LIMB / 8).
+global MAX_BITS: comptime Field = 280;     /// Maximum number of bits (BITS_PER_LIMB * NUM_LIMBS).
+global MAX_BYTES: comptime Field = 35;     /// Maximum number of bytes (NUM_LIMBS * BYTES_PER_LIMB).
+
+// TODO/NOTES:
+// 1. Noir doesn't support expressions on globals so these are hardcoded
+// 2. Noir doesn't automatically add `comptime` to all globals, hence strongly typed
+// 3. Noir doesn't support const generics, so we can't have a generic limb type
+//
 // The ideal implementation would be with a generic limb type `T`, but Noir 
 // doesn't support const generics so this is non-trivial to implement.
 //  struct BigUint<T, NUM_LIMBS> {
 //      limbs : [T; NUM_LIMBS],
 //  }
 
+/// A structure representing a large unsigned integer using a fixed number of limbs.
+/// Each limb is a 56-bit unsigned integer. 
+/// 1. 56 is divisible by 8, making byte conversion easier.
+/// 2. Multiplication requires a double width value, and u112 is the maximum representable in Noir.
+struct BigUint56 {
+    limbs: [u56; NUM_LIMBS],
+}
+
 impl BigUint56 {
-    // Returns zero as BigUint56.
+    /// Creates a new BigUint56 initialized to zero.
     fn zero() -> Self {
         Self { limbs: [0 as u56; NUM_LIMBS] }
     }
 
-    // Returns one as BigUint56.
+    /// Creates a new BigUint56 initialized to one.
     fn one() -> Self {
         let mut one = BigUint56::zero();
         one.limbs[0] = 1;
         one
     }
     
+    /// Constructs a BigUint56 from a single `u56` value.
     fn from_u56(val: u56) -> Self {
         let mut buint = BigUint56::zero();
         buint.limbs[0] = val;
         buint
     }
 
-    // Constructs a BigUint56 from a byte array. Assumes that the byte array is little-endian.
+    /// Constructs a BigUint56 from a byte array in little-endian format.
     fn from_bytes(bytes: [u8]) -> Self {
         // TODO: Do I need this check?
         assert(bytes.len() as u56 <= MAX_BYTES as u56);
@@ -64,7 +65,7 @@ impl BigUint56 {
         res
     }
 
-    // Returns a byte array representation of the BigUint56. The bytes are in little-endian order.
+    /// Returns the little-endian byte array representation of the BigUint56.
     fn to_bytes(self: Self) -> [u8; MAX_BYTES] {
         let mut res = [0 as u8; MAX_BYTES];
     
@@ -79,7 +80,7 @@ impl BigUint56 {
         res
     }
 
-    // Returns a bit array representation of the BigUint56. The least significant bit is at index 0.
+    /// Returns the bit array representation of the BigUint56, with LSB at index 0.
     fn to_bits(self: Self) -> [u1; MAX_BITS] {
         let mut res = [0 as u1; MAX_BITS];
     
@@ -94,7 +95,8 @@ impl BigUint56 {
         res
     }
 
-    // Performs the addition with carry operation.
+    /// Adds two BigUint56 numbers with carry.
+    /// Returns a tuple containing the result and the carry.
     fn adc(self: Self, other: Self) -> (Self, u56) {
         let mut res = BigUint56::zero();
         let mut carry = 0 as u56;
@@ -108,14 +110,15 @@ impl BigUint56 {
         (res, carry)
     }
 
-    // Performs the wrapping addition operation.
+    /// Adds two BigUint56 instances without returning the carry.
     // TODO: Check if carry is 0?
     fn add(self: Self, other: Self) -> Self {
         let (res, _carry) = self.adc(other);
         res
     }
 
-    // Performs the subtraction with borrow operation.
+    /// Subtracts two BigUint56 numbers with borrow.
+    /// Returns a tuple containing the result and the borrow.
     fn sbb(self: Self, other: Self) -> (Self, u56) {
         let mut res = BigUint56::zero();
         let mut borrow = 0 as u56;
@@ -129,16 +132,15 @@ impl BigUint56 {
         (res, borrow)
     }
 
-    // Performs the wrapping subtraction operation.
+    /// Subtracts two BigUint56 instances without returning the borrow.
     // TODO: Check if borrow is 0?
     fn sub(self: Self, other: Self) -> Self {
         let (res, _borrow) = self.sbb(other);
         res
     }
 
-    // Performs the multiplication operation.
-    // Implements the long multiplication algorithm.
-    // Returns the low and high parts of the result.
+    /// Multiplies two BigUint56 instances using long multiplication.
+    /// Returns a tuple containing the lower and higher parts of the multiplication result.
     fn mul(self: Self, other: Self) -> (Self, Self) {
         let mut lo = BigUint56::zero();
         let mut hi = BigUint56::zero();
@@ -166,9 +168,9 @@ impl BigUint56 {
         (lo, hi)
     }
 
-    // Performs left shift operation by `n` bits.
-    // where `0 <= n < Limb::BITS`,
-    // Returns the shifted number and the carry.
+    /// Shifts the BigUint56 instance to the left by a specified number of bits `n`.
+    /// where `0 <= n < Limb::BITS`,
+    /// Returns the shifted result and the carry.
     // TODO: Should I return early if n == 0?
     fn shl_limb(self: Self, n: u56) -> (Self, u56) {
         assert(n < BITS_PER_LIMB as u56);
@@ -187,13 +189,13 @@ impl BigUint56 {
         (res, carry)
     }
 
-    // Performs left shift operation by 1 bit.
+    /// Shifts the BigUint56 instance to the left by 1 bit.
     fn shl1(self: Self) -> Self {
         let (res, _carry) = self.shl_limb(1);
         res
     }
 
-    // Performs left shift operation by `n` bits.
+    /// Shifts the BigUint56 instance to the left by a specified number of bits `n`.
     // TODO: Should I return early if n == 0?
     fn shl(self: Self, n: u56) -> Self {
         let mut res = BigUint56::zero();
@@ -218,8 +220,8 @@ impl BigUint56 {
         res
     }
 
-    // Performs right shift operation by `n` bits.
-    // where `0 <= n < Limb::BITS`,
+    /// Shifts the BigUint56 instance to the right by a specified number of bits `n`.
+    /// where `0 <= n < Limb::BITS`,
     // TODO: Should I return early if n == 0?
     fn shr_limb(self: Self, n: u56) -> Self {
         assert(n < BITS_PER_LIMB as u56);
@@ -235,13 +237,13 @@ impl BigUint56 {
         res
     }
 
-    // Performs right shift operation by 1 bit.
+    /// Shifts the BigUint56 instance to the right by 1 bit.
     fn shr1(self: Self) -> Self {
         let res = self.shr_limb(1);
         res
     }
 
-    // Performs right shift operation by `n` bits.
+    /// Shifts the BigUint56 instance to the right by a specified number of bits.
     // TODO: Should I return early if n == 0?
     fn shr(self: Self, n: u56) -> Self {
         let mut res = BigUint56::zero();
@@ -263,7 +265,7 @@ impl BigUint56 {
         res
     }
 
-    // Returns the number of bits in the big integer.
+    /// Returns the number of bits needed to represent the BigUint56 instance.
     fn nbits(self: Self) -> u56 {
         let bits = BigUint56::to_bits(self);
         let mut res = 0;
@@ -280,7 +282,8 @@ impl BigUint56 {
         res
     }
 
-    // Performs long division and returns the quotient and remainder.
+
+    /// Divides the BigUint56 instance by another, returning the quotient and remainder using long division.
     // WARNING: This is a simple binary long division. More efficient algorithms should be considered.
     // TODO: Maybe https://github.com/okuyiga/noir-bigint/blob/d60cc5246c8b0d175c4d6b1f4aaceed7fb725695/bigint/src/division.nr
     fn div(self: Self, other: Self) -> (Self, Self) {
@@ -311,7 +314,7 @@ impl BigUint56 {
         }
     }
 
-    // Checks if self == other.
+    /// Checks if the two BigUint56 instances are equal.
     fn eq(self: Self, other: Self) -> bool {
         let mut is_eq = true;
         for i in 0..NUM_LIMBS {
@@ -320,36 +323,36 @@ impl BigUint56 {
         is_eq
     }
 
-    // Checks if self >= other.
+    /// Checks if the BigUint56 instance is greater than or equal to another.
     fn gte(self: Self, other: Self) -> bool {
         let (_diff, borrow) = self.sbb(other);
         borrow == 0
     }
 
-    // Checks if self > other.
+    /// Checks if the BigUint56 instance is strictly greater than another.
     fn gt(self: Self, other: Self) -> bool {
         let (diff, borrow) = self.sbb(other);
         (borrow == 0) & !diff.eq(BigUint56::zero())
     }
 
-    // Checks if self <= other.
+    /// Checks if the BigUint56 instance is less than or equal to another.
     fn lte(self: Self, other: Self) -> bool {
         other.gte(self)
     }
 
-    // Checks if self < other.
+    /// Checks if the BigUint56 instance is strictly less than another.
     fn lt(self: Self, other: Self) -> bool {
         other.gt(self)
     }
 
-    // Checks if the big integer is zero.
+    /// Checks if the BigUint56 instance is zero.
     fn is_zero(self: Self) -> bool {
         self.eq(BigUint56::zero())
     }
 
-    // Returns self + other % modulus.
-    // Assumes `self + other` as unbounded integer is `< 2*modulus`.
-    fn add_mod(self: Self, other: Self, modulus: Self) -> Self {
+    /// Returns self + other % modulus.
+    /// Assumes `self + other` as unbounded integer is `< 2*modulus`.
+    fn addmod(self: Self, other: Self, modulus: Self) -> Self {
         let (sum1, carry) = self.adc(other);
 
         // Attempt to subtract the modulus, to ensure the result is in the field.
@@ -367,7 +370,7 @@ impl BigUint56 {
     // TODO: Implement
     // fn mul_mod(self: Self, other: Self, modulus: Self)
 
-    // Print as bytes
+    // Prints the BigUint56 instance as a byte array.
     fn println(self: Self) {
         let bytes = self.to_bytes();
         println(bytes);
@@ -678,11 +681,11 @@ fn test_div4() {
 }
 
 #[test]
-fn test_add_mod1() {
+fn test_addmod1() {
     let a = BigUint56::from_bytes([2]);
     let b = BigUint56::from_bytes([7]);
     let c = BigUint56::from_bytes([5]);
 
-    let d = a.add_mod(b, c);
+    let d = a.addmod(b, c);
     assert(d.eq(BigUint56::from_bytes([4])));
 }
