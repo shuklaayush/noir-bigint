@@ -1,5 +1,7 @@
 use dep::std::println;
-use crate::{BigUint56, NUM_LIMBS, BITS_PER_LIMB, MAX_BITS, MAX_BYTES, utils};
+
+use dep::biguint::{BigUint56, utils};
+use dep::biguint::{NUM_LIMBS, BITS_PER_LIMB, MAX_BITS, MAX_BYTES};
 
 // Field element
 struct PrimeField {

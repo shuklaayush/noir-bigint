@@ -1,0 +1,9 @@
+[package]
+name = "curves"
+authors = ["shuklaayush"]
+type = "lib"
+compiler_version = "0.9.0"
+
+[dependencies]
+biguint = { path = "../biguint" }
+primefield = { path = "../primefield" }

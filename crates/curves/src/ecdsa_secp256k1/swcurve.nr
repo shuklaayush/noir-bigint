@@ -1,7 +1,7 @@
 use dep::std::println;
 
-use crate::examples::ecdsa_secp256k1::fp::PrimeField as Fp;
-use crate::examples::ecdsa_secp256k1::fq::PrimeField as Fq;
+use crate::ecdsa_secp256k1::fp::PrimeField as Fp;
+use crate::ecdsa_secp256k1::fq::PrimeField as Fq;
 
 // Point in three-dimensional Jacobian coordinates
 struct Point {
