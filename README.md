@@ -3,14 +3,32 @@
 [![CI][ci-shield]][ci-url]
 [![MIT License][license-shield]][license-url]
 
-This library provides a custom `BigUint56` data type, allowing for computations on large unsigned integers. The integers are represented with a fixed number of limbs, each of which is a 56-bit unsigned integer. 
+## Packages
+
+This library provides three crates:
+
+- `biguint` - custom unsigned big integer type implemented using u56 limbs 
+- `primefield` - wrapper around `biguint` that implements prime field operations
+- `curves` - example elliptic curve libraries built using the `primefield` type
+
+### `biguint`
+
+This crate provides a custom [`BigUint56`](./crates/biguint/src/lib.nr) data type, allowing for computations on large unsigned integers. The integers are represented with a fixed number of limbs, each of which is a 56-bit unsigned integer.
 
 We utilize `u56` limbs for two primary reasons:
 
 1. 56 is divisible by 8, simplifying conversions to/from bytes.
 2. Multiplication requires a double-width intermediate value and `u112` is the maximum double-width value that can be represented in Noir.
 
-This library provides various functionalities such as arithmetic operations (addition, subtraction, multiplication, division), bitwise operations (left shift, right shift), comparisons and conversions (to bytes, to bits). 
+This provides various functionalities such as arithmetic operations (addition, subtraction, multiplication, division), bitwise operations (left shift, right shift), comparisons and conversions (to bytes, to bits).
+
+### `primefield`
+
+This contains the [`PrimeField`](./crates/biguint/src/lib.nr) data type, which allows for efficient operations on prime field elements. This is implemented as a wrapper around the `BigUint56` type and stores the values in the [Montgomery form](https://en.wikipedia.org/wiki/Montgomery_modular_multiplication) for efficient modular multiplication/reduction.
+
+### `curves`
+
+This crate contains examples of the `secp256k1` and the `ed25519` curves implemented using the `PrimeField` type.
 
 ## Installation
 
@@ -18,7 +36,7 @@ In your `Nargo.toml` file, add the following dependency:
 
 ```toml
 [dependencies]
-noir_bigint = { tag = "v0.0.1", git = "https://github.com/shuklaayush/noir-bigint" }
+noir_bigint = { tag = "v0.1.0", git = "https://github.com/shuklaayush/noir-bigint" }
 ```
 
 ## Testing
