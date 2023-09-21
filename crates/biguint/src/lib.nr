@@ -3,26 +3,25 @@ use dep::std::println;
 mod utils;
 
 // Top-level constants related to the size of BigUint56 limbs and bytes.
-global BITS_PER_LIMB: comptime Field = 56; /// Number of bits per limb.
-global NUM_LIMBS: comptime Field = 5;      /// Number of limbs.
+global BITS_PER_LIMB: Field = 56; /// Number of bits per limb.
+global NUM_LIMBS: Field = 5;      /// Number of limbs.
 
-global BYTES_PER_LIMB: comptime Field = 7; /// Number of bytes per limb (BITS_PER_LIMB / 8).
-global MAX_BITS: comptime Field = 280;     /// Maximum number of bits (BITS_PER_LIMB * NUM_LIMBS).
-global MAX_BYTES: comptime Field = 35;     /// Maximum number of bytes (NUM_LIMBS * BYTES_PER_LIMB).
+global BYTES_PER_LIMB: Field = 7; /// Number of bytes per limb (BITS_PER_LIMB / 8).
+global MAX_BITS: Field = 280;     /// Maximum number of bits (BITS_PER_LIMB * NUM_LIMBS).
+global MAX_BYTES: Field = 35;     /// Maximum number of bytes (NUM_LIMBS * BYTES_PER_LIMB).
 
 // TODO/NOTES:
 // 1. Noir doesn't support expressions on globals so these are hardcoded
-// 2. Noir doesn't automatically add `comptime` to all globals, hence strongly typed
-// 3. Noir doesn't support const generics, so we can't have a generic limb type
+// 2. Noir doesn't support const generics, so we can't have a generic limb type
 //
-// The ideal implementation would be with a generic limb type `T`, but Noir 
+// The ideal implementation would be with a generic limb type `T`, but Noir
 // doesn't support const generics so this is non-trivial to implement.
 //  struct BigUint<T, NUM_LIMBS> {
 //      limbs : [T; NUM_LIMBS],
 //  }
 
 /// A structure representing a large unsigned integer using a fixed number of limbs.
-/// Each limb is a 56-bit unsigned integer. 
+/// Each limb is a 56-bit unsigned integer.
 /// 1. 56 is divisible by 8, making byte conversion easier.
 /// 2. Multiplication requires a double width value, and u112 is the maximum representable in Noir.
 struct BigUint56 {
@@ -41,7 +40,7 @@ impl BigUint56 {
         one.limbs[0] = 1;
         one
     }
-    
+
     /// Constructs a BigUint56 from a single `u56` value.
     fn from_u56(val: u56) -> Self {
         let mut buint = BigUint56::zero();
@@ -68,7 +67,7 @@ impl BigUint56 {
     /// Returns the little-endian byte array representation of the BigUint56.
     fn to_bytes(self: Self) -> [u8; MAX_BYTES] {
         let mut res = [0 as u8; MAX_BYTES];
-    
+
         for i in 0..NUM_LIMBS {
             let limb_bytes = (self.limbs[i] as Field).to_le_bytes(BYTES_PER_LIMB as u32);
             for j in 0..BYTES_PER_LIMB {
@@ -76,14 +75,14 @@ impl BigUint56 {
                 res[idx] = limb_bytes[j as Field];
             }
         }
-    
+
         res
     }
 
     /// Returns the bit array representation of the BigUint56, with LSB at index 0.
     fn to_bits(self: Self) -> [u1; MAX_BITS] {
         let mut res = [0 as u1; MAX_BITS];
-    
+
         for i in 0..NUM_LIMBS {
             let limb_bits = (self.limbs[i] as Field).to_le_bits(BITS_PER_LIMB as u32);
             for j in 0..BITS_PER_LIMB {
@@ -91,7 +90,7 @@ impl BigUint56 {
                 res[idx] = limb_bits[j as Field];
             }
         }
-    
+
         res
     }
 
@@ -128,7 +127,7 @@ impl BigUint56 {
             res.limbs[i] = diff;
             borrow = new_borrow;
         };
-        
+
         (res, borrow)
     }
 
@@ -365,7 +364,7 @@ impl BigUint56 {
             sum2.add(modulus)
         }
     }
-    
+
     // Returns self * other % modulus.
     // TODO: Implement
     // fn mul_mod(self: Self, other: Self, modulus: Self)
@@ -564,6 +563,16 @@ fn test_shl5() {
     let b = a.shl1();
 
     assert(b.eq(BigUint56::from_bytes([2])));
+}
+
+#[test]
+fn test_shl6() {
+    let a = BigUint56::from_u56(0x80000000000000);
+    let b = a.shl1();
+
+    assert(b.eq(BigUint56 {
+        limbs: [0, 1, 0, 0, 0],
+    }));
 }
 
 #[test]

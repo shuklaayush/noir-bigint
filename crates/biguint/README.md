@@ -8,27 +8,27 @@ The `BigUint56` structure represents a large unsigned integer using a fixed numb
 
 ### `BITS_PER_LIMB`
 Number of bits per limb.
-- Type: `comptime Field`
+- Type: `Field`
 - Value: `56`
 
 ### `NUM_LIMBS`
 Number of limbs.
-- Type: `comptime Field`
+- Type: `Field`
 - Value: `5`
 
 ### `BYTES_PER_LIMB`
 Number of bytes per limb, which is calculated as `BITS_PER_LIMB / 8`.
-- Type: `comptime Field`
+- Type: `Field`
 - Value: `7`
 
 ### `MAX_BITS`
 Maximum number of bits, calculated as `BITS_PER_LIMB * NUM_LIMBS`.
-- Type: `comptime Field`
+- Type: `Field`
 - Value: `280`
 
 ### `MAX_BYTES`
 Maximum number of bytes, calculated as `NUM_LIMBS * BYTES_PER_LIMB`.
-- Type: `comptime Field`
+- Type: `Field`
 - Value: `35`
 
 ## Structures
