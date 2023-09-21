@@ -181,6 +181,15 @@ impl BigUint56 {
 
         res.limbs[0] = self.limbs[0] << n;
         for i in 1..NUM_LIMBS {
+            println("------------------");
+            println("self.limbs[i - 1]");
+            println(self.limbs[i - 1]);
+            println("rshift");
+            println(rshift);
+            println("self.limbs[i - 1] >> rshift");
+            println(self.limbs[i - 1] >> rshift);
+            println("0x80000000000000 >> rshift");
+            println(0x80000000000000 >> rshift);
             res.limbs[i] = (self.limbs[i] << n) | (self.limbs[i - 1] >> rshift);
         // BUG: Panics without this semi-colon.
         };
