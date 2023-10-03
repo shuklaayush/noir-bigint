@@ -21,12 +21,12 @@ struct Curve { // Twisted Edwards curve
 }
 
 impl Point {
-    fn from_affine(x: Fp, y: Fp) -> Self {
+    pub fn from_affine(x: Fp, y: Fp) -> Self {
         Self {x, y, t: x.mul(y), z: Fp::one()}
     }
 
     // Additive identity
-    fn zero() -> Self {
+    pub fn zero() -> Self {
         Self { x: Fp::zero(), y: Fp::one(), t: Fp::zero(), z: Fp::one() }
     }
 
@@ -51,7 +51,7 @@ impl Point {
 
         Self { x: x.neg(), y, t: t.neg(), z }
     }
-    
+
     // Convert to affine coordinates
     // TODO: Create struct
     fn to_affine(self) -> (Fp, Fp) {
@@ -59,7 +59,7 @@ impl Point {
 
         let x = self.x.mul(zinv);
         let y = self.y.mul(zinv);
-        
+
         (x, y)
     }
 
@@ -74,7 +74,7 @@ impl Point {
     // Print as bytes
     fn println_affine(self: Self) {
         let (x, y) = self.to_affine();
-        
+
         x.println();
         y.println();
     }
@@ -83,12 +83,12 @@ impl Point {
 
 impl Curve {
     // Curve constructor
-    fn new(a: Fp, d: Fp, gen: Point) -> Curve {
+    pub fn new(a: Fp, d: Fp, gen: Point) -> Curve {
         // Check curve coefficients
         assert(!a.is_zero());
         assert(!d.is_zero());
         assert(!a.eq(d));
-        
+
         let curve = Curve { a, d, gen };
 
         // gen should be on the curve
@@ -162,7 +162,7 @@ impl Curve {
         let y = g.mul(h);
         let t = e.mul(h);
         let z = f.mul(g);
-        
+
         Point { x, y, t, z }
     }
 
@@ -170,7 +170,7 @@ impl Curve {
     // If k is the natural number represented by `bits`, then this computes p + ... + p k times.
     fn bit_mul<N>(self, bits: [u1; N], p: Point) -> Point {
         let mut out = Point::zero();
-        
+
         for i in 0..N {
             out = self.double(out);
             if(bits[N - i - 1] == 1) {
@@ -184,7 +184,7 @@ impl Curve {
 
         out
     }
-    
+
     // Scalar multiplication (p + ... + p n times)
     fn mul(self, n: Fq, p: Point) -> Point {
         let n_as_bits = n.to_bits();

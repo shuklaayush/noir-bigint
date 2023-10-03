@@ -14,7 +14,7 @@ impl PrimeField {
     ///////////////////////////////////////////////////////////////////////////
 
     // Prime field modulus
-    fn modulus() -> Self {
+    pub fn modulus() -> Self {
         let val = BigUint56 { limbs: [0x12631a5cf5d3ed, 0xf9dea2f79cd658, 0x14de, 0x, 0x10000000] };
         Self { val }
     }
@@ -42,11 +42,11 @@ impl PrimeField {
     ///////////////////////////////////////////////////////////////////////////
 
     // TODO: Emphasize that there's no montgomery mul here.
-    fn from_limbs(limbs: [u56; NUM_LIMBS]) -> Self {
+    pub fn from_limbs(limbs: [u56; NUM_LIMBS]) -> Self {
         Self { val: BigUint56{ limbs } }
     }
 
-    fn from_u56(val: u56) -> Self {
+    pub fn from_u56(val: u56) -> Self {
         let tmp = Self { val: BigUint56::from_u56(val) };
 
         // Convert to Montgomery form by computing
@@ -54,7 +54,7 @@ impl PrimeField {
         tmp.mul(PrimeField::R2())
     }
 
-    fn from_biguint56(val: BigUint56) -> Self {
+    pub fn from_biguint56(val: BigUint56) -> Self {
         let tmp = Self { val };
 
         // Convert to Montgomery form by computing
@@ -62,7 +62,7 @@ impl PrimeField {
         tmp.mul(PrimeField::R2())
     }
 
-    fn from_bytes(bytes: [u8]) -> Self {
+    pub fn from_bytes(bytes: [u8]) -> Self {
         let tmp = Self { val: BigUint56::from_bytes(bytes) };
 
         // TODO: Do I need to check this?
@@ -100,13 +100,13 @@ impl PrimeField {
     }
 
     // Returns zero, the additive identity.
-    fn zero() -> Self {
+    pub fn zero() -> Self {
         let val: BigUint56 = BigUint56::zero();
         Self { val }
     }
 
     // Returns one, the multiplicative identity.
-    fn one() -> Self {
+    pub fn one() -> Self {
         PrimeField::R()
     }
 
@@ -208,7 +208,7 @@ impl PrimeField {
         for i in 0..NUM_LIMBS {
             for j in 0..BITS_PER_LIMB {
                 res = res.square();
-                
+
                 if ((by.limbs[NUM_LIMBS - i - 1] >> ((BITS_PER_LIMB - j - 1) as u56)) & 1) == 1 {
                     res = res.mul(self);
                 }

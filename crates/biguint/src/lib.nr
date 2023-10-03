@@ -30,26 +30,26 @@ struct BigUint56 {
 
 impl BigUint56 {
     /// Creates a new BigUint56 initialized to zero.
-    fn zero() -> Self {
+    pub fn zero() -> Self {
         Self { limbs: [0 as u56; NUM_LIMBS] }
     }
 
     /// Creates a new BigUint56 initialized to one.
-    fn one() -> Self {
+    pub fn one() -> Self {
         let mut one = BigUint56::zero();
         one.limbs[0] = 1;
         one
     }
 
     /// Constructs a BigUint56 from a single `u56` value.
-    fn from_u56(val: u56) -> Self {
+    pub fn from_u56(val: u56) -> Self {
         let mut buint = BigUint56::zero();
         buint.limbs[0] = val;
         buint
     }
 
     /// Constructs a BigUint56 from a byte array in little-endian format.
-    fn from_bytes(bytes: [u8]) -> Self {
+    pub fn from_bytes(bytes: [u8]) -> Self {
         // TODO: Do I need this check?
         assert(bytes.len() as u56 <= MAX_BYTES as u56);
 

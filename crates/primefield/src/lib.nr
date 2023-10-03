@@ -26,7 +26,7 @@ impl PrimeField {
     ///////////////////////////////////////////////////////////////////////////
 
     /// Returns the prime field modulus.
-    fn modulus() -> Self {
+    pub fn modulus() -> Self {
         let val = BigUint56 { limbs: [0x208c16d87cfd47, 0x6a916871ca8d3c, 0xb68181585d9781, 0xe131a029b85045, 0x30644e72] };
         Self { val }
     }
@@ -228,7 +228,7 @@ impl PrimeField {
         for i in 0..NUM_LIMBS {
             for j in 0..BITS_PER_LIMB {
                 res = res.square();
-                
+
                 if ((by.limbs[NUM_LIMBS - i - 1] >> ((BITS_PER_LIMB - j - 1) as u56)) & 1) == 1 {
                     res = res.mul(self);
                 }
@@ -242,7 +242,7 @@ impl PrimeField {
         self.pow(by)
     }
 
-    /// Computes the multiplicative inverse of this element. 
+    /// Computes the multiplicative inverse of this element.
     /// Returns an error if the element is zero.
     fn invert(self: Self) -> Self {
         assert(!self.is_zero());
