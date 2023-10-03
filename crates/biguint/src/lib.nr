@@ -170,29 +170,20 @@ impl BigUint56 {
     /// Shifts the BigUint56 instance to the left by a specified number of bits `n`.
     /// where `0 <= n < Limb::BITS`,
     /// Returns the shifted result and the carry.
-    // TODO: Should I return early if n == 0?
     fn shl_limb(self: Self, n: u56) -> (Self, u56) {
         assert(n < BITS_PER_LIMB as u56);
 
-        let mut res = BigUint56::zero();
+        let mut res = self;
 
         let rshift = BITS_PER_LIMB as u56 - n;
-        let carry = self.limbs[NUM_LIMBS - 1] >> rshift;
+        let carry = if (n == 0) { 0 } else { self.limbs[NUM_LIMBS - 1] >> rshift };
 
-        res.limbs[0] = self.limbs[0] << n;
-        for i in 1..NUM_LIMBS {
-            println("------------------");
-            println("self.limbs[i - 1]");
-            println(self.limbs[i - 1]);
-            println("rshift");
-            println(rshift);
-            println("self.limbs[i - 1] >> rshift");
-            println(self.limbs[i - 1] >> rshift);
-            println("0x80000000000000 >> rshift");
-            println(0x80000000000000 >> rshift);
-            res.limbs[i] = (self.limbs[i] << n) | (self.limbs[i - 1] >> rshift);
-        // BUG: Panics without this semi-colon.
-        };
+        if (n > 0) {
+            res.limbs[0] = self.limbs[0] << n;
+            for i in 1..NUM_LIMBS {
+                res.limbs[i] = (self.limbs[i] << n) | (self.limbs[i - 1] >> rshift);
+            }
+        }
 
         (res, carry)
     }
@@ -234,13 +225,16 @@ impl BigUint56 {
     fn shr_limb(self: Self, n: u56) -> Self {
         assert(n < BITS_PER_LIMB as u56);
 
-        let mut res = BigUint56::zero();
-        let lshift = BITS_PER_LIMB as u56 - n;
+        let mut res = self;
 
-        for i in 0..NUM_LIMBS-1 {
-            res.limbs[i] = (self.limbs[i] >> n) | (self.limbs[i + 1] << lshift);
+        if (n > 0) {
+            let lshift = BITS_PER_LIMB as u56 - n;
+
+            for i in 0..NUM_LIMBS-1 {
+                res.limbs[i] = (self.limbs[i] >> n) | (self.limbs[i + 1] << lshift);
+            }
+            res.limbs[NUM_LIMBS - 1] = self.limbs[NUM_LIMBS - 1] >> n;
         }
-        res.limbs[NUM_LIMBS - 1] = self.limbs[NUM_LIMBS - 1] >> n;
 
         res
     }
