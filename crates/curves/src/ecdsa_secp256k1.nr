@@ -70,6 +70,19 @@ fn test_secp256k1_zero() {
 }
 
 #[test]
+fn skaunov(test_secp256k1_point_eq_affine_proj) {
+    let Secp256k1 { curve } = secp256k1();
+
+    let two = Fp::one().add(Fp::one());
+    let g_projective_z_doubled = Point{
+        x: curve.gen.x.mul(two),
+        y: curve.gen.y.mul(two),
+        z: two,
+    };
+    assert(curve.gen.eq(g_projective_z_doubled));
+}
+
+#[test]
 fn test_secp256k1_add1() {
     let Secp256k1 { curve } = secp256k1();
 
