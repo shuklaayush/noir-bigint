@@ -70,7 +70,7 @@ fn test_secp256k1_zero() {
 }
 
 #[test]
-fn skaunov(test_secp256k1_point_eq_affine_proj) {
+fn test_secp256k1_point_eq_affine_proj() {
     let Secp256k1 { curve } = secp256k1();
 
     let two = Fp::one().add(Fp::one());
