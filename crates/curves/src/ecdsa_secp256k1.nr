@@ -70,16 +70,17 @@ fn test_secp256k1_zero() {
 }
 
 #[test]
-fn test_secp256k1_point_eq_affine_proj() {
+fn test_secp256k1_point_eq_affine_jacob() {
     let Secp256k1 { curve } = secp256k1();
 
     let two = Fp::one().add(Fp::one());
-    let g_projective_z_doubled = Point{
-        x: curve.gen.x.mul(two),
-        y: curve.gen.y.mul(two),
+    let four = two.mul(two);
+    let g_jacobian_z_doubled = Point{
+        x: curve.gen.x.mul(four),
+        y: curve.gen.y.mul(four).mul(two),
         z: two,
     };
-    assert(curve.gen.eq(g_projective_z_doubled));
+    assert(curve.gen.eq(g_jacobian_z_doubled));
 }
 
 #[test]
