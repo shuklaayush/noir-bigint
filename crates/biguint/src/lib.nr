@@ -390,14 +390,14 @@ fn test_from_bytes1() {
 fn test_from_bytes2() {
     let bytes = [255 as u8; 7];
     let a = BigUint56::from_bytes(bytes);
-    assert(a.eq(BigUint56{ limbs: [0-1 as u56, 0, 0, 0, 0] }));
+    assert(a.eq(BigUint56{ limbs: [0xffffffffffffff, 0, 0, 0, 0] }));
 }
 
 #[test]
 fn test_from_bytes3() {
     let bytes = [255 as u8; 8];
     let a = BigUint56::from_bytes(bytes);
-    assert(a.eq(BigUint56{ limbs: [0-1 as u56, 255, 0, 0, 0] }));
+    assert(a.eq(BigUint56{ limbs: [0xffffffffffffff, 255, 0, 0, 0] }));
 }
 
 #[test]
