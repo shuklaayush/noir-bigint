@@ -411,10 +411,7 @@ fn test_to_bytes1() {
 
 #[test]
 fn test_to_bits1() {
-    let a = BigUint56::zero();
-    let b = BigUint56::one();
-
-    let c = a.sub(b);
+    let c = BigUint56{ limbs: [0xffffffffffffff; 5] };
     assert(c.to_bits() == [1 as u1; MAX_BITS]);
 }
 
