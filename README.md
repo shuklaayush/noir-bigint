@@ -36,7 +36,9 @@ In your `Nargo.toml` file, add the following dependency:
 
 ```toml
 [dependencies]
-noir_bigint = { tag = "v0.1.0", git = "https://github.com/shuklaayush/noir-bigint" }
+noir_bigint_curves = { tag = "v0.1.0", git = "https://github.com/shuklaayush/noir-bigint", directory="crates/curves" }
+noir_biguint = { tag = "v0.1.0", git = "https://github.com/shuklaayush/noir-bigint", directory="crates/biguint" }
+noir_bigint_primefield = { tag = "v0.1.0", git = "https://github.com/shuklaayush/noir-bigint", directory="crates/primefield" }
 ```
 
 ## Testing
