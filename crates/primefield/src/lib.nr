@@ -97,6 +97,8 @@ impl PrimeField {
 
     /// Converts the prime field element to a BigUint56 value.
     fn to_biguint56(self: Self) -> BigUint56 {
+        assert(self.val.lt(Self::modulus()));
+
         // Turn into canonical form by computing
         // (a.R) / R = a
         let tmp = PrimeField::montgomery_reduce(self.val, BigUint56::zero());
