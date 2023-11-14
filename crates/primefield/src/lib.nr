@@ -137,7 +137,7 @@ impl PrimeField {
         } else {
             // Subtract `self` from `MODULUS` to negate
             let modulus = PrimeField::modulus().val;
-            Self { val: modulus.sub(self.val) }
+            PrimeField::from_biguint56(modulus.sub(self.to_biguint56()))
         }
     }
 
