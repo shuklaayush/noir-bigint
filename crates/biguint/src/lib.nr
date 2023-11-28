@@ -190,7 +190,10 @@ impl BigUint56 {
 
     /// Shifts the BigUint56 instance to the left by 1 bit.
     fn shl1(self: Self) -> Self {
+        println("--------------------------------------------------------------------------------");
+        println(self);
         let (res, _carry) = self.shl_limb(1);
+        println(res);
         res
     }
 
