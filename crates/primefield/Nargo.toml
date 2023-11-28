@@ -2,7 +2,7 @@
 name = "primefield"
 authors = ["shuklaayush"]
 type = "lib"
-compiler_version = "0.9.0"
+# compiler_version = "0.9.0"
 
 [dependencies]
 biguint = { path = "../biguint" }

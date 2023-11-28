@@ -80,7 +80,6 @@ impl Point {
     }
 }
 
-
 impl Curve {
     // Curve constructor
     pub fn new(a: Fp, d: Fp, gen: Point) -> Curve {
