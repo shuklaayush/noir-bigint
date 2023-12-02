@@ -1,3 +1,4 @@
+use dep::std;
 use dep::std::println;
 
 use dep::biguint::{BigUint56, utils};
@@ -175,7 +176,7 @@ impl PrimeField {
 
         let mut carry2 = 0;
         for i in 0..NUM_LIMBS {
-            let k = tmp[i] * PrimeField::P_INV();
+            let k = std::wrapping_mul(tmp[i], PrimeField::P_INV());
             let mut carry = 0;
             for j in 0..NUM_LIMBS {
                 let (prod, c) = utils::mac(tmp[i + j], k, modulus.limbs[j], carry);
