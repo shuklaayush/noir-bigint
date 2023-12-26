@@ -121,7 +121,7 @@ impl PrimeField {
     }
 
     /// Returns zero, the additive identity for the prime field.
-    fn zero() -> Self {
+    pub fn zero() -> Self {
         let val: BigUint56 = BigUint56::zero();
         Self { val }
     }
