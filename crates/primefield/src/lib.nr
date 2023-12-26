@@ -83,7 +83,7 @@ impl PrimeField {
     }
 
     /// Constructs a prime field element from a byte array, then converts it to Montgomery form.
-    fn from_bytes(bytes: [u8]) -> Self {
+    pub fn from_bytes(bytes: [u8]) -> Self {
         let tmp = Self { val: BigUint56::from_bytes(bytes) };
 
         // TODO: Do I need to check this?
