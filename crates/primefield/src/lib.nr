@@ -74,7 +74,7 @@ impl PrimeField {
     }
 
     /// Constructs a prime field element from a BigUint56 value, then converts it to Montgomery form.
-    fn from_biguint56(val: BigUint56) -> Self {
+    pub fn from_biguint56(val: BigUint56) -> Self {
         let tmp = Self { val };
 
         // Convert to Montgomery form by computing
@@ -83,7 +83,7 @@ impl PrimeField {
     }
 
     /// Constructs a prime field element from a byte array, then converts it to Montgomery form.
-    fn from_bytes(bytes: [u8]) -> Self {
+    pub fn from_bytes(bytes: [u8]) -> Self {
         let tmp = Self { val: BigUint56::from_bytes(bytes) };
 
         // TODO: Do I need to check this?
@@ -121,13 +121,13 @@ impl PrimeField {
     }
 
     /// Returns zero, the additive identity for the prime field.
-    fn zero() -> Self {
+    pub fn zero() -> Self {
         let val: BigUint56 = BigUint56::zero();
         Self { val }
     }
 
     /// Returns one, the multiplicative identity for the prime field.
-    fn one() -> Self {
+    pub fn one() -> Self {
         PrimeField::R()
     }
 
