@@ -3,6 +3,9 @@
 [![CI][ci-shield]][ci-url]
 [![MIT License][license-shield]][license-url]
 
+**DEPRECATION NOTICE:** With [native bigint opcodes](https://github.com/noir-lang/noir/blob/8d6667773db13392a97a610cb5b996bffdf3e405/noir_stdlib/src/bigint.nr) added in Noir v0.24.0, this repository is no longer required. Use the native bigint abstractions instead of this library.
+
+
 ## Packages
 
 This library provides three crates:
